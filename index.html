@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清晰分帳計算機</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2d3748;
+            --primary: #4a5568;
+            --primary-light: #edf2f7;
+            --accent: #3182ce;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; line-height: 1.5; }
+        .container { max-width: 500px; margin: 0 auto; }
+        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--primary); font-weight: 600; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid var(--border); }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
+        input[type="text"], input[type="number"], select { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-color); outline: none; }
+        input:focus, select:focus { border-color: var(--accent); background: #fff; }
+        button { padding: 10px 16px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: #2d3748; }
+        .btn-accent { background-color: var(--accent); color: white; width: 100%; margin-top: 8px; }
+        .btn-danger { background-color: #fed7d7; color: #c53030; padding: 6px 10px; font-size: 0.85rem; }
+        .badge-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .badge { background: var(--primary-light); padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+        .checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.95rem; }
+        .checkbox-label input { width: 16px; height: 16px; }
+        .item-list { margin-top: 8px; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        .item-row:last-child { border-bottom: none; }
+        .result-row { padding: 8px 0; border-bottom: 1px dotted var(--border); font-size: 1rem; }
+        .result-row span { font-weight: bold; color: var(--accent); }
+        .share-box { text-align: center; background: #ebf8ff; border: 1px dashed #bee3f8; }
+        .hint { font-size: 0.8rem; color: #718096; margin-top: 4px; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="eventTitleDisplay">清晰分帳計算機</h1>
+
+    <div class="card" id="step1">
+        <div class="card-title">步驟 1：設定活動名稱</div>
+        <div class="input-group">
+            <input type="text" id="eventNameInput" placeholder="例如：花蓮三日遊">
+            <button class="btn-primary" onclick="setEventName()">設定</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">步驟 2：新增參與人員</div>
+        <div class="input-group">
+            <input type="text" id="personNameInput" placeholder="輸入姓名">
+            <button class="btn-primary" onclick="addPerson()">加入</button>
+        </div>
+        <div class="badge-list" id="participantsList"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">步驟 3：新增代墊費用</div>
+        <input type="text" id="expenseTitle" placeholder="項目名稱（如：第一天晚餐）" style="width:100%; margin-bottom:10px;">
+        <div class="input-group">
+            <input type="number" id="expenseAmount" placeholder="金額" inputmode="numeric">
+            <select id="expensePayer">
+                <option value="">選擇付款人...</option>
+            </select>
+        </div>
+        <div style="font-size: 0.9rem; margin-top: 8px; font-weight: 500;">誰要一起平分？</div>
+        <div class="checkbox-grid" id="splitTargets"></div>
+        <button class="btn-primary" style="width:100%;" onclick="addExpense()">新增此筆費用</button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">費用明細紀錄</div>
+        <div class="item-list" id="expenseHistory">暫無費用紀錄</div>
+    </div>
+
+    <div class="card" style="border-top: 4px solid var(--accent);">
+        <div class="card-title">結算報告 (兩兩直接對帳)</div>
+        <div id="settlementResult">請先輸入人員與費用。</div>
+    </div>
+
+    <div class="card share-box">
+        <div class="card-title" style="justify-content: center; margin-bottom: 4px;">同步資料給朋友</div>
+        <p style="font-size:0.85rem; color:#2b6cb0;">填寫完後，點擊下方按鈕複製新網址傳回群組</p>
+        <button class="btn-accent" onclick="copyShareLink()">複製目前的分享連結</button>
+    </div>
+</div>
+
+<script>
+    // 全域狀態
+    let state = {
+        eventName: '',
+        participants: [],
+        expenses: []
+    };
+
+    // 初始化：嘗試從網址讀取加密資料
+    window.onload = function() {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#data=')) {
+            try {
+                const base64Data = hash.substring(6);
+                const decodedJson = decodeURIComponent(atob(base64Data).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                state = JSON.parse(decodedJson);
+                if(!state.participants) state.participants = [];
+                if(!state.expenses) state.expenses = [];
+                updateUI();
+            } catch (e) {
+                alert('解析分享資料失敗，已為您開啟新事件。');
+            }
+        }
+    };
+
+    function setEventName() {
+        const name = document.getElementById('eventNameInput').value.trim();
+        if (name) {
+            state.eventName = name;
+            updateUI();
+        }
+    }
+
+    function addPerson() {
+        const nameInput = document.getElementById('personNameInput');
+        const name = nameInput.value.trim();
+        if (!name) return;
+        if (state.participants.includes(name)) {
+            alert('此姓名已存在');
+            return;
+        }
+        state.participants.push(name);
+        nameInput.value = '';
+        updateUI();
+    }
+
+    function removePerson(name) {
+        state.participants = state.participants.filter(p => p !== name);
+        // 連帶清除該成員付款或參與的帳務
+        state.expenses = state.expenses.filter(e => e.payer !== name);
+        state.expenses.forEach(e => {
+            e.splits = e.splits.filter(s => s !== name);
+        });
+        state.expenses = state.expenses.filter(e => e.splits.length > 0);
+        updateUI();
+    }
+
+    function addExpense() {
+        const title = document.getElementById('expenseTitle').value.trim();
+        const amount = parseFloat(document.getElementById('expenseAmount').value);
+        const payer = document.getElementById('expensePayer').value;
+        
+        if (!title || isNaN(amount) || amount <= 0 || !payer) {
+            alert('請填寫完整的項目、金額與付款人！');
+            return;
+        }
+
+        const checkboxes = document.querySelectorAll('.split-cb:checked');
+        const splits = Array.from(checkboxes).map(cb => cb.value);
+
+        if (splits.length === 0) {
+            alert('請至少選擇一位需要平分的人！');
+            return;
+        }
+
+        const newExpense = {
+            id: Date.now(),
+            title: title,
+            amount: amount,
+            payer: payer,
+            splits: splits
+        };
+
+        state.expenses.push(newExpense);
+        
+        // 清空欄位
+        document.getElementById('expenseTitle').value = '';
+        document.getElementById('expenseAmount').value = '';
+        document.getElementById('expensePayer').value = '';
+        
+        updateUI();
+    }
+
+    function removeExpense(id) {
+        state.expenses = state.expenses.filter(e => e.id !== id);
+        updateUI();
+    }
+
+    function updateUI() {
+        // 更新活動標題
+        if (state.eventName) {
+            document.getElementById('eventTitleDisplay').innerText = state.eventName;
+            document.getElementById('eventNameInput').value = state.eventName;
+        }
+
+        // 更新成員標籤
+        const partList = document.getElementById('participantsList');
+        partList.innerHTML = '';
+        state.participants.forEach(p => {
+            partList.innerHTML += `<span class="badge">${p} <button class="btn-danger" style="padding:2px 6px; border-radius:50%;" onclick="removePerson('${p}')">×</button></span>`;
+        });
+
+        // 更新付款人下拉選單
+        const payerSelect = document.getElementById('expensePayer');
+        const currentPayer = payerSelect.value;
+        payerSelect.innerHTML = '<option value="">選擇付款人...</option>';
+        state.participants.forEach(p => {
+            payerSelect.innerHTML += `<option value="${p}">${p}</option>`;
+        });
+        payerSelect.value = currentPayer;
+
+        // 更新平分選擇核取方塊
+        const cbGrid = document.getElementById('splitTargets');
+        cbGrid.innerHTML = '';
+        state.participants.forEach(p => {
+            cbGrid.innerHTML += `
+                <label class="checkbox-label">
+                    <input type="checkbox" class="split-cb" value="${p}" checked>
+                    ${p}
+                </label>
+            `;
+        });
+
+        // 更新費用歷史
+        const historyDiv = document.getElementById('expenseHistory');
+        if (state.expenses.length === 0) {
+            historyDiv.innerHTML = '暫無費用紀錄';
+        } else {
+            historyDiv.innerHTML = '';
+            state.expenses.forEach(e => {
+                historyDiv.innerHTML += `
+                    <div class="item-row">
+                        <div>
+                            <strong>${e.title}</strong><br>
+                            <span style="font-size:0.85rem; color:#718096;">由 ${e.payer} 付 $${e.amount} (${e.splits.length}人分)</span>
+                        </div>
+                        <button class="btn-danger" onclick="removeExpense(${e.id})">刪除</button>
+                    </div>
+                `;
+            });
+        }
+
+        calculateSettlement();
+    }
+
+    function calculateSettlement() {
+        const resultDiv = document.getElementById('settlementResult');
+        if (state.participants.length < 2) {
+            resultDiv.innerHTML = '需要至少 2 位成員才能進行結算。';
+            return;
+        }
+
+        // 初始化二維債務矩陣 debts[A][B] 代表 A 欠 B 多少錢
+        let debts = {};
+        state.participants.forEach(p1 => {
+            debts[p1] = {};
+            state.participants.forEach(p2 => {
+                debts[p1][p2] = 0;
+            });
+        });
+
+        // 依據每筆消費填入原始債務
+        state.expenses.forEach(e => {
+            const payer = e.payer;
+            const shareCount = e.splits.length;
+            const perShare = e.amount / shareCount;
+
+            e.splits.forEach(borrower => {
+                if (borrower !== payer) {
+                    debts[borrower][payer] += perShare;
+                }
+            });
+        });
+
+        // 兩兩互相抵銷 (例如: A欠B 100，B欠A 40 -> 簡化為 A欠B 60)
+        // 此處完全保留「帳務清晰」的直接關係，不做第三方移轉
+        let outputHtml = '';
+        let hasDebts = false;
+
+        for (let i = 0; i < state.participants.length; i++) {
+            for (let j = i + 1; j < state.participants.length; j++) {
+                const pA = state.participants[i];
+                const pB = state.participants[j];
+
+                let amtAtoB = debts[pA][pB];
+                let amtBtoA = debts[pB][pA];
+
+                if (amtAtoB > amtBtoA) {
+                    let finalOwe = Math.round(amtAtoB - amtBtoA);
+                    if (finalOwe > 0) {
+                        outputHtml += `<div class="result-row">${pA} 應該給 ${pB} <span>$${finalOwe}</span> 元</div>`;
+                        hasDebts = true;
+                    }
+                } else if (amtBtoA > amtAtoB) {
+                    let finalOwe = Math.round(amtBtoA - amtAtoB);
+                    if (finalOwe > 0) {
+                        outputHtml += `<div class="result-row">${pB} 應該給 ${pA} <span>$${finalOwe}</span> 元</div>`;
+                        hasDebts = true;
+                    }
+                }
+            }
+        }
+
+        if (!hasDebts) {
+            resultDiv.innerHTML = '帳務已全部平分，目前互不相欠！';
+        } else {
+            resultDiv.innerHTML = outputHtml;
+        }
+    }
+
+    // 將當前狀態加密並複製連結
+    function copyShareLink() {
+        try {
+            const jsonStr = JSON.stringify(state);
+            const base64Data = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+            
+            const shareUrl = window.location.origin + window.location.pathname + '#data=' + base64Data;
+            
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('最新的分享連結已複製到剪貼簿！趕快貼到 LINE 群組讓大家繼續填寫吧！');
+            }).catch(err => {
+                // 備用複製方案
+                const el = document.createElement('textarea');
+                el.value = shareUrl;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                alert('最新的分享連結已複製！');
+            });
+        } catch (e) {
+            alert('產生連結失敗，請確認輸入內容是否正常。');
+        }
+    }
+</script>
+
+</body>
+</html>
