@@ -3,18 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>清晰分帳計算機</title>
+    <title>清晰分帳計算機 v2</title>
     <style>
-        :root {
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-color: #2d3748;
-            --primary: #4a5568;
-            --primary-light: #edf2f7;
-            --accent: #3182ce;
-            --border: #e2e8f0;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        :root { --bg-color: #f8f9fa; --card-bg: #ffffff; --text-color: #2d3748; --primary: #4a5568; --primary-light: #edf2f7; --accent: #3182ce; --border: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; line-height: 1.5; }
         .container { max-width: 500px; margin: 0 auto; }
         h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--primary); font-weight: 600; }
@@ -32,14 +24,11 @@
         .badge { background: var(--primary-light); padding: 6px 12px; border-radius: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
         .checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
         .checkbox-label { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.95rem; }
-        .checkbox-label input { width: 16px; height: 16px; }
-        .item-list { margin-top: 8px; }
+        .item-list { margin-top: 8px; max-height: 250px; overflow-y: auto; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
-        .item-row:last-child { border-bottom: none; }
-        .result-row { padding: 8px 0; border-bottom: 1px dotted var(--border); font-size: 1rem; }
-        .result-row span { font-weight: bold; color: var(--accent); }
+        .result-row { padding: 10px 0; border-bottom: 1px dotted var(--border); font-size: 1rem; }
+        .result-row span { font-weight: bold; color: #dd6b20; }
         .share-box { text-align: center; background: #ebf8ff; border: 1px dashed #bee3f8; }
-        .hint { font-size: 0.8rem; color: #718096; margin-top: 4px; text-align: left; }
     </style>
 </head>
 <body>
@@ -47,10 +36,10 @@
 <div class="container">
     <h1 id="eventTitleDisplay">清晰分帳計算機</h1>
 
-    <div class="card" id="step1">
+    <div class="card">
         <div class="card-title">步驟 1：設定活動名稱</div>
         <div class="input-group">
-            <input type="text" id="eventNameInput" placeholder="例如：花蓮三日遊">
+            <input type="text" id="eventNameInput" placeholder="例如：宜蘭遊">
             <button class="btn-primary" onclick="setEventName()">設定</button>
         </div>
     </div>
@@ -66,12 +55,10 @@
 
     <div class="card">
         <div class="card-title">步驟 3：新增代墊費用</div>
-        <input type="text" id="expenseTitle" placeholder="項目名稱（如：第一天晚餐）" style="width:100%; margin-bottom:10px;">
+        <input type="text" id="expenseTitle" placeholder="項目名稱（如：玩水車資）" style="width:100%; margin-bottom:10px;">
         <div class="input-group">
             <input type="number" id="expenseAmount" placeholder="金額" inputmode="numeric">
-            <select id="expensePayer">
-                <option value="">選擇付款人...</option>
-            </select>
+            <select id="expensePayer"><option value="">選擇付款人...</option></select>
         </div>
         <div style="font-size: 0.9rem; margin-top: 8px; font-weight: 500;">誰要一起平分？</div>
         <div class="checkbox-grid" id="splitTargets"></div>
@@ -83,61 +70,58 @@
         <div class="item-list" id="expenseHistory">暫無費用紀錄</div>
     </div>
 
-    <div class="card" style="border-top: 4px solid var(--accent);">
+    <div class="card" style="border-top: 4px solid #dd6b20;">
         <div class="card-title">結算報告 (兩兩直接對帳)</div>
         <div id="settlementResult">請先輸入人員與費用。</div>
     </div>
 
     <div class="card share-box">
         <div class="card-title" style="justify-content: center; margin-bottom: 4px;">同步資料給朋友</div>
-        <p style="font-size:0.85rem; color:#2b6cb0;">填寫完後，點擊下方按鈕複製新網址傳回群組</p>
-        <button class="btn-accent" onclick="copyShareLink()">複製目前的分享連結</button>
+        <button class="btn-accent" onclick="copyShareLink()">複製最新的分享連結</button>
     </div>
 </div>
 
 <script>
-    // 全域狀態
-    let state = {
-        eventName: '',
-        participants: [],
-        expenses: []
-    };
+    let state = { eventName: '', participants: [], expenses: [] };
 
-    // 初始化：嘗試從網址讀取加密資料
+    // 安全的 Base64 解碼（支援 UTF-8 中文）
+    function base64ToBytes(base64) {
+        const binString = atob(base64);
+        return Uint8Array.from(binString, (m) => m.codePointAt(0));
+    }
+
+    // 安全的 Base64 編碼（支援 UTF-8 中文）
+    function bytesToBase64(bytes) {
+        const binString = Array.from(bytes, (x) => String.fromCodePoint(x)).join("");
+        return btoa(binString);
+    }
+
     window.onload = function() {
         const hash = window.location.hash;
         if (hash && hash.startsWith('#data=')) {
             try {
-                const base64Data = hash.substring(6);
-                const decodedJson = decodeURIComponent(atob(base64Data).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
+                const base64Data = hash.substring(6).replace(/_/g, '/').replace(/-/g, '+');
+                const decodedBytes = base64ToBytes(base64Data);
+                const decodedJson = new TextDecoder().decode(decodedBytes);
                 state = JSON.parse(decodedJson);
                 if(!state.participants) state.participants = [];
                 if(!state.expenses) state.expenses = [];
                 updateUI();
             } catch (e) {
-                alert('解析分享資料失敗，已為您開啟新事件。');
+                alert('解析資料失敗，請確認連結是否完整。');
             }
         }
     };
 
     function setEventName() {
         const name = document.getElementById('eventNameInput').value.trim();
-        if (name) {
-            state.eventName = name;
-            updateUI();
-        }
+        if (name) { state.eventName = name; updateUI(); }
     }
 
     function addPerson() {
         const nameInput = document.getElementById('personNameInput');
         const name = nameInput.value.trim();
-        if (!name) return;
-        if (state.participants.includes(name)) {
-            alert('此姓名已存在');
-            return;
-        }
+        if (!name || state.participants.includes(name)) return;
         state.participants.push(name);
         nameInput.value = '';
         updateUI();
@@ -145,11 +129,8 @@
 
     function removePerson(name) {
         state.participants = state.participants.filter(p => p !== name);
-        // 連帶清除該成員付款或參與的帳務
         state.expenses = state.expenses.filter(e => e.payer !== name);
-        state.expenses.forEach(e => {
-            e.splits = e.splits.filter(s => s !== name);
-        });
+        state.expenses.forEach(e => { e.splits = e.splits.filter(s => s !== name); });
         state.expenses = state.expenses.filter(e => e.splits.length > 0);
         updateUI();
     }
@@ -158,35 +139,16 @@
         const title = document.getElementById('expenseTitle').value.trim();
         const amount = parseFloat(document.getElementById('expenseAmount').value);
         const payer = document.getElementById('expensePayer').value;
-        
-        if (!title || isNaN(amount) || amount <= 0 || !payer) {
-            alert('請填寫完整的項目、金額與付款人！');
-            return;
-        }
+        if (!title || isNaN(amount) || amount <= 0 || !payer) { alert('請填寫完整！'); return; }
 
         const checkboxes = document.querySelectorAll('.split-cb:checked');
         const splits = Array.from(checkboxes).map(cb => cb.value);
+        if (splits.length === 0) { alert('請至少選擇一位平分人！'); return; }
 
-        if (splits.length === 0) {
-            alert('請至少選擇一位需要平分的人！');
-            return;
-        }
-
-        const newExpense = {
-            id: Date.now(),
-            title: title,
-            amount: amount,
-            payer: payer,
-            splits: splits
-        };
-
-        state.expenses.push(newExpense);
-        
-        // 清空欄位
+        state.expenses.push({ id: Date.now(), title: title, amount: amount, payer: payer, splits: splits });
         document.getElementById('expenseTitle').value = '';
         document.getElementById('expenseAmount').value = '';
         document.getElementById('expensePayer').value = '';
-        
         updateUI();
     }
 
@@ -196,41 +158,26 @@
     }
 
     function updateUI() {
-        // 更新活動標題
-        if (state.eventName) {
-            document.getElementById('eventTitleDisplay').innerText = state.eventName;
-            document.getElementById('eventNameInput').value = state.eventName;
-        }
-
-        // 更新成員標籤
+        if (state.eventName) document.getElementById('eventTitleDisplay').innerText = state.eventName;
+        
         const partList = document.getElementById('participantsList');
         partList.innerHTML = '';
         state.participants.forEach(p => {
             partList.innerHTML += `<span class="badge">${p} <button class="btn-danger" style="padding:2px 6px; border-radius:50%;" onclick="removePerson('${p}')">×</button></span>`;
         });
 
-        // 更新付款人下拉選單
         const payerSelect = document.getElementById('expensePayer');
         const currentPayer = payerSelect.value;
         payerSelect.innerHTML = '<option value="">選擇付款人...</option>';
-        state.participants.forEach(p => {
-            payerSelect.innerHTML += `<option value="${p}">${p}</option>`;
-        });
+        state.participants.forEach(p => { payerSelect.innerHTML += `<option value="${p}">${p}</option>`; });
         payerSelect.value = currentPayer;
 
-        // 更新平分選擇核取方塊
         const cbGrid = document.getElementById('splitTargets');
         cbGrid.innerHTML = '';
         state.participants.forEach(p => {
-            cbGrid.innerHTML += `
-                <label class="checkbox-label">
-                    <input type="checkbox" class="split-cb" value="${p}" checked>
-                    ${p}
-                </label>
-            `;
+            cbGrid.innerHTML += `<label class="checkbox-label"><input type="checkbox" class="split-cb" value="${p}" checked> ${p}</label>`;
         });
 
-        // 更新費用歷史
         const historyDiv = document.getElementById('expenseHistory');
         if (state.expenses.length === 0) {
             historyDiv.innerHTML = '暫無費用紀錄';
@@ -239,50 +186,34 @@
             state.expenses.forEach(e => {
                 historyDiv.innerHTML += `
                     <div class="item-row">
-                        <div>
-                            <strong>${e.title}</strong><br>
-                            <span style="font-size:0.85rem; color:#718096;">由 ${e.payer} 付 $${e.amount} (${e.splits.length}人分)</span>
-                        </div>
+                        <div><strong>${e.title}</strong><br><span style="font-size:0.85rem; color:#718096;">${e.payer} 付 $${e.amount} (${e.splits.length}人分)</span></div>
                         <button class="btn-danger" onclick="removeExpense(${e.id})">刪除</button>
-                    </div>
-                `;
+                    </div>`;
             });
         }
-
         calculateSettlement();
     }
 
     function calculateSettlement() {
         const resultDiv = document.getElementById('settlementResult');
-        if (state.participants.length < 2) {
-            resultDiv.innerHTML = '需要至少 2 位成員才能進行結算。';
-            return;
-        }
+        if (state.participants.length < 2) { resultDiv.innerHTML = '需要至少 2 位成員才能結算。'; return; }
 
-        // 初始化二維債務矩陣 debts[A][B] 代表 A 欠 B 多少錢
         let debts = {};
         state.participants.forEach(p1 => {
             debts[p1] = {};
-            state.participants.forEach(p2 => {
-                debts[p1][p2] = 0;
-            });
+            state.participants.forEach(p2 => { debts[p1][p2] = 0; });
         });
 
-        // 依據每筆消費填入原始債務
         state.expenses.forEach(e => {
             const payer = e.payer;
-            const shareCount = e.splits.length;
-            const perShare = e.amount / shareCount;
-
+            const perShare = e.amount / e.splits.length;
             e.splits.forEach(borrower => {
-                if (borrower !== payer) {
+                if (borrower !== payer && debts[borrower] && debts[borrower][payer] !== undefined) {
                     debts[borrower][payer] += perShare;
                 }
             });
         });
 
-        // 兩兩互相抵銷 (例如: A欠B 100，B欠A 40 -> 簡化為 A欠B 60)
-        // 此處完全保留「帳務清晰」的直接關係，不做第三方移轉
         let outputHtml = '';
         let hasDebts = false;
 
@@ -291,8 +222,8 @@
                 const pA = state.participants[i];
                 const pB = state.participants[j];
 
-                let amtAtoB = debts[pA][pB];
-                let amtBtoA = debts[pB][pA];
+                let amtAtoB = debts[pA][pB] || 0;
+                let amtBtoA = debts[pB][pA] || 0;
 
                 if (amtAtoB > amtBtoA) {
                     let finalOwe = Math.round(amtAtoB - amtBtoA);
@@ -309,41 +240,24 @@
                 }
             }
         }
-
-        if (!hasDebts) {
-            resultDiv.innerHTML = '帳務已全部平分，目前互不相欠！';
-        } else {
-            resultDiv.innerHTML = outputHtml;
-        }
+        resultDiv.innerHTML = hasDebts ? outputHtml : '帳務已全部平分，目前互不相欠！';
     }
 
-    // 將當前狀態加密並複製連結
     function copyShareLink() {
         try {
             const jsonStr = JSON.stringify(state);
-            const base64Data = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-                return String.fromCharCode('0x' + p1);
-            }));
-            
+            const bytes = new TextEncoder().encode(jsonStr);
+            const base64Data = bytesToBase64(bytes).replace(/\//g, '_').replace(/\+/g, '-');
             const shareUrl = window.location.origin + window.location.pathname + '#data=' + base64Data;
             
             navigator.clipboard.writeText(shareUrl).then(() => {
-                alert('最新的分享連結已複製到剪貼簿！趕快貼到 LINE 群組讓大家繼續填寫吧！');
-            }).catch(err => {
-                // 備用複製方案
-                const el = document.createElement('textarea');
-                el.value = shareUrl;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
+                alert('最新的分享連結已複製！趕快貼到 LINE 群組讓大家看正確的結算吧！');
+            }).catch(() => {
+                const el = document.createElement('textarea'); el.value = shareUrl; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
                 alert('最新的分享連結已複製！');
             });
-        } catch (e) {
-            alert('產生連結失敗，請確認輸入內容是否正常。');
-        }
+        } catch (e) { alert('產生連結失敗'); }
     }
 </script>
-
 </body>
 </html>
