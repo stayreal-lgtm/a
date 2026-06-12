@@ -36,6 +36,7 @@
         /* 表單輸入區 */
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-muted); }
+        /* 移除 inputmode 讓手機鍵盤可以輸入負號 */
         input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-color); color: var(--text-main); outline: none; }
         input:focus, select:focus { border-color: var(--accent); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
@@ -110,18 +111,17 @@
 
         <div class="form-group">
             <label>分類</label>
-            <select id="inputCategory">
-                </select>
+            <select id="inputCategory"></select>
         </div>
 
         <div class="form-group">
             <label>金額</label>
-            <input type="number" id="inputAmount" placeholder="輸入金額" inputmode="numeric">
+            <input type="number" id="inputAmount" placeholder="輸入金額（收入可填負數）">
         </div>
 
         <div class="form-group">
             <label>備註 (選填)</label>
-            <input type="text" id="inputNote" placeholder="例如：買咖啡、台積電股息...">
+            <input type="text" id="inputNote" placeholder="例如：買咖啡、當沖損益...">
         </div>
 
         <button class="submit-btn" onclick="saveRecord()">儲存紀錄</button>
@@ -129,30 +129,23 @@
 
     <div class="card">
         <div class="card-title">本月明細</div>
-        <div class="record-list" id="recordList">
-            </div>
+        <div class="record-list" id="recordList"></div>
     </div>
 </div>
 
 <script>
-    // 核心資料庫 (從 LocalStorage 讀取)
     let records = JSON.parse(localStorage.getItem('myAccountingData')) || [];
     let currentType = 'expense';
     let myChart = null;
 
-    // 分類設定 (依照你的需求)
     const categories = {
         expense: ['日常費用', '旅遊費用', '特殊花費'],
         income: ['每日收入']
     };
 
-    // 初始化設定
     window.onload = function() {
-        // 設定預設日期為今天
         const today = new Date();
         document.getElementById('inputDate').value = today.toISOString().split('T')[0];
-        
-        // 設定總覽月份為本月
         const currentMonth = today.toISOString().slice(0, 7);
         document.getElementById('viewMonth').value = currentMonth;
 
@@ -160,7 +153,6 @@
         updateDashboard();
     };
 
-    // 切換收入/支出按鈕
     function setType(type) {
         currentType = type;
         document.querySelectorAll('.radio-label').forEach(el => el.classList.remove('active'));
@@ -168,7 +160,6 @@
         updateCategoryDropdown();
     }
 
-    // 更新下拉選單
     function updateCategoryDropdown() {
         const select = document.getElementById('inputCategory');
         select.innerHTML = '';
@@ -177,42 +168,33 @@
         });
     }
 
-    // 儲存紀錄
     function saveRecord() {
         const date = document.getElementById('inputDate').value;
         const category = document.getElementById('inputCategory').value;
         const amount = parseFloat(document.getElementById('inputAmount').value);
         const note = document.getElementById('inputNote').value.trim();
 
-        if (!date || isNaN(amount) || amount <= 0) {
+        if (!date || isNaN(amount)) {
             alert('請確認日期和金額填寫正確！');
             return;
         }
 
-        const newRecord = {
-            id: Date.now(),
-            type: currentType,
-            date: date,
-            category: category,
-            amount: amount,
-            note: note
-        };
+        // 核心邏輯修改：支出不能是負數或零，但收入可以！
+        if (currentType === 'expense' && amount <= 0) {
+            alert('支出金額必須大於 0 喔！');
+            return;
+        }
 
+        const newRecord = { id: Date.now(), type: currentType, date: date, category: category, amount: amount, note: note };
         records.push(newRecord);
-        // 依照日期排序 (越近的在越上面)
         records.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        // 存入手機瀏覽器
         localStorage.setItem('myAccountingData', JSON.stringify(records));
 
-        // 清空輸入框
         document.getElementById('inputAmount').value = '';
         document.getElementById('inputNote').value = '';
-
         updateDashboard();
     }
 
-    // 刪除紀錄
     function deleteRecord(id) {
         if(confirm('確定要刪除這筆紀錄嗎？')) {
             records = records.filter(r => r.id !== id);
@@ -221,14 +203,11 @@
         }
     }
 
-    // 更新儀表板 (包含總覽、列表、圖表)
     function updateDashboard() {
-        const viewMonth = document.getElementById('viewMonth').value; // 例如 "2026-06"
+        const viewMonth = document.getElementById('viewMonth').value;
         if(!viewMonth) return;
 
-        // 篩選出該月份的資料
         const monthlyRecords = records.filter(r => r.date.startsWith(viewMonth));
-        
         let totalInc = 0;
         let totalExp = 0;
         let expByCategory = { '日常費用': 0, '旅遊費用': 0, '特殊花費': 0 };
@@ -243,7 +222,7 @@
         monthlyRecords.forEach(r => {
             // 計算總和與分類統計
             if(r.type === 'income') {
-                totalInc += r.amount;
+                totalInc += r.amount; // 若 amount 是負的，這裡會自動相減
             } else {
                 totalExp += r.amount;
                 if(expByCategory[r.category] !== undefined) {
@@ -251,9 +230,21 @@
                 }
             }
 
-            // 產生列表 HTML
-            const colorClass = r.type === 'income' ? 'text-income' : 'text-expense';
-            const sign = r.type === 'income' ? '+' : '-';
+            // 處理介面顯示邏輯（虧損的收入變紅色）
+            let colorClass = 'text-expense';
+            let sign = '-';
+            let displayAmount = Math.abs(r.amount); // 取絕對值方便排版
+
+            if (r.type === 'income') {
+                if (r.amount >= 0) {
+                    colorClass = 'text-income';
+                    sign = '+';
+                } else {
+                    colorClass = 'text-expense';
+                    sign = '-'; // 虧錢一樣顯示負號，但顏色變紅
+                }
+            }
+
             const noteHtml = r.note ? ` | ${r.note}` : '';
             
             listDiv.innerHTML += `
@@ -263,14 +254,13 @@
                         <span>${r.date}${noteHtml}</span>
                     </div>
                     <div style="text-align: right;">
-                        <div class="${colorClass}" style="font-weight: bold; margin-bottom: 4px;">${sign}$${r.amount.toLocaleString()}</div>
+                        <div class="${colorClass}" style="font-weight: bold; margin-bottom: 4px;">${sign}$${displayAmount.toLocaleString()}</div>
                         <button class="delete-btn" onclick="deleteRecord(${r.id})">刪除</button>
                     </div>
                 </div>
             `;
         });
 
-        // 更新上方數字
         const net = totalInc - totalExp;
         document.getElementById('totalIncome').innerText = `$${totalInc.toLocaleString()}`;
         document.getElementById('totalExpense').innerText = `$${totalExp.toLocaleString()}`;
@@ -279,21 +269,15 @@
         netEl.innerText = `$${net.toLocaleString()}`;
         netEl.style.color = net >= 0 ? 'var(--income)' : 'var(--expense)';
 
-        // 更新圓餅圖
         updateChart(expByCategory);
     }
 
-    // 繪製/更新圓餅圖
     function updateChart(expByCategory) {
         const ctx = document.getElementById('expenseChart').getContext('2d');
         const dataValues = [expByCategory['日常費用'], expByCategory['旅遊費用'], expByCategory['特殊花費']];
-        
-        // 如果本月完全沒支出，顯示空圖表
         const hasData = dataValues.some(v => v > 0);
 
-        if (myChart) {
-            myChart.destroy();
-        }
+        if (myChart) myChart.destroy();
 
         myChart = new Chart(ctx, {
             type: 'doughnut',
@@ -301,11 +285,7 @@
                 labels: ['日常費用', '旅遊費用', '特殊花費'],
                 datasets: [{
                     data: hasData ? dataValues : [1],
-                    backgroundColor: hasData ? [
-                        '#60a5fa', // 日常 - 藍色
-                        '#fbbf24', // 旅遊 - 黃色
-                        '#c084fc'  // 特殊 - 紫色
-                    ] : ['#4f545c'],
+                    backgroundColor: hasData ? ['#60a5fa', '#fbbf24', '#c084fc'] : ['#4f545c'],
                     borderWidth: 0
                 }]
             },
@@ -313,10 +293,7 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { color: '#eef0f2', font: { size: 12 } }
-                    },
+                    legend: { position: 'right', labels: { color: '#eef0f2', font: { size: 12 } } },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
