@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人專屬記帳本</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 消光槍灰與科技銀 質感主題 */
+        :root {
+            --bg-color: #2b2d31; /* 消光槍灰背景 */
+            --card-bg: #383a40;  /* 卡片底色 */
+            --text-main: #eef0f2; /* 科技銀主文字 */
+            --text-muted: #a0a5ab;
+            --accent: #8fa1b3;   /* 銀色點綴 */
+            --income: #4ade80;   /* 收入綠 */
+            --expense: #f87171;  /* 支出紅 */
+            --border: #4f545c;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; line-height: 1.5; }
+        .container { max-width: 500px; margin: 0 auto; padding-bottom: 40px; }
+        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; color: var(--text-main); font-weight: 600; letter-spacing: 1px; }
+        
+        .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        
+        /* 總覽區塊 */
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
+        .summary-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        .summary-box span { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+        .summary-box strong { font-size: 1.2rem; }
+        .text-income { color: var(--income); }
+        .text-expense { color: var(--expense); }
+        
+        /* 表單輸入區 */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-muted); }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-color); color: var(--text-main); outline: none; }
+        input:focus, select:focus { border-color: var(--accent); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+        
+        .radio-group { display: flex; gap: 10px; margin-bottom: 12px; }
+        .radio-label { flex: 1; text-align: center; padding: 8px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .radio-label.active[data-type="expense"] { background-color: rgba(248, 113, 113, 0.2); border-color: var(--expense); color: var(--expense); }
+        .radio-label.active[data-type="income"] { background-color: rgba(74, 222, 128, 0.2); border-color: var(--income); color: var(--income); }
+        
+        button.submit-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; background-color: var(--accent); color: var(--bg-color); margin-top: 8px; transition: opacity 0.2s; }
+        button.submit-btn:active { opacity: 0.8; }
+        
+        /* 明細列表 */
+        .month-selector { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .month-selector input { width: auto; padding: 6px 10px; }
+        .record-list { max-height: 300px; overflow-y: auto; }
+        .record-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); }
+        .record-item:last-child { border-bottom: none; }
+        .record-info div { font-weight: 500; margin-bottom: 2px; }
+        .record-info span { font-size: 0.8rem; color: var(--text-muted); }
+        .delete-btn { background: transparent; color: var(--expense); border: 1px solid var(--expense); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        
+        /* 圖表區 */
+        .chart-container { position: relative; height: 200px; width: 100%; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>個人專屬記帳本</h1>
+
+    <div class="card">
+        <div class="month-selector">
+            <div class="card-title" style="border:none; margin:0; padding:0;">本月資金總覽</div>
+            <input type="month" id="viewMonth" onchange="updateDashboard()">
+        </div>
+        <div class="summary-grid">
+            <div class="summary-box">
+                <span>總收入</span>
+                <strong class="text-income" id="totalIncome">$0</strong>
+            </div>
+            <div class="summary-box">
+                <span>總支出</span>
+                <strong class="text-expense" id="totalExpense">$0</strong>
+            </div>
+            <div class="summary-box">
+                <span>本月結餘</span>
+                <strong id="netBalance">$0</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">支出資金流向</div>
+        <div class="chart-container">
+            <canvas id="expenseChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">新增紀錄</div>
+        
+        <div class="radio-group">
+            <div class="radio-label active" data-type="expense" onclick="setType('expense')">支出</div>
+            <div class="radio-label" data-type="income" onclick="setType('income')">收入</div>
+        </div>
+
+        <div class="form-group">
+            <label>日期</label>
+            <input type="date" id="inputDate">
+        </div>
+
+        <div class="form-group">
+            <label>分類</label>
+            <select id="inputCategory">
+                </select>
+        </div>
+
+        <div class="form-group">
+            <label>金額</label>
+            <input type="number" id="inputAmount" placeholder="輸入金額" inputmode="numeric">
+        </div>
+
+        <div class="form-group">
+            <label>備註 (選填)</label>
+            <input type="text" id="inputNote" placeholder="例如：買咖啡、台積電股息...">
+        </div>
+
+        <button class="submit-btn" onclick="saveRecord()">儲存紀錄</button>
+    </div>
+
+    <div class="card">
+        <div class="card-title">本月明細</div>
+        <div class="record-list" id="recordList">
+            </div>
+    </div>
+</div>
+
+<script>
+    // 核心資料庫 (從 LocalStorage 讀取)
+    let records = JSON.parse(localStorage.getItem('myAccountingData')) || [];
+    let currentType = 'expense';
+    let myChart = null;
+
+    // 分類設定 (依照你的需求)
+    const categories = {
+        expense: ['日常費用', '旅遊費用', '特殊花費'],
+        income: ['每日收入']
+    };
+
+    // 初始化設定
+    window.onload = function() {
+        // 設定預設日期為今天
+        const today = new Date();
+        document.getElementById('inputDate').value = today.toISOString().split('T')[0];
+        
+        // 設定總覽月份為本月
+        const currentMonth = today.toISOString().slice(0, 7);
+        document.getElementById('viewMonth').value = currentMonth;
+
+        updateCategoryDropdown();
+        updateDashboard();
+    };
+
+    // 切換收入/支出按鈕
+    function setType(type) {
+        currentType = type;
+        document.querySelectorAll('.radio-label').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.radio-label[data-type="${type}"]`).classList.add('active');
+        updateCategoryDropdown();
+    }
+
+    // 更新下拉選單
+    function updateCategoryDropdown() {
+        const select = document.getElementById('inputCategory');
+        select.innerHTML = '';
+        categories[currentType].forEach(cat => {
+            select.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+    }
+
+    // 儲存紀錄
+    function saveRecord() {
+        const date = document.getElementById('inputDate').value;
+        const category = document.getElementById('inputCategory').value;
+        const amount = parseFloat(document.getElementById('inputAmount').value);
+        const note = document.getElementById('inputNote').value.trim();
+
+        if (!date || isNaN(amount) || amount <= 0) {
+            alert('請確認日期和金額填寫正確！');
+            return;
+        }
+
+        const newRecord = {
+            id: Date.now(),
+            type: currentType,
+            date: date,
+            category: category,
+            amount: amount,
+            note: note
+        };
+
+        records.push(newRecord);
+        // 依照日期排序 (越近的在越上面)
+        records.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // 存入手機瀏覽器
+        localStorage.setItem('myAccountingData', JSON.stringify(records));
+
+        // 清空輸入框
+        document.getElementById('inputAmount').value = '';
+        document.getElementById('inputNote').value = '';
+
+        updateDashboard();
+    }
+
+    // 刪除紀錄
+    function deleteRecord(id) {
+        if(confirm('確定要刪除這筆紀錄嗎？')) {
+            records = records.filter(r => r.id !== id);
+            localStorage.setItem('myAccountingData', JSON.stringify(records));
+            updateDashboard();
+        }
+    }
+
+    // 更新儀表板 (包含總覽、列表、圖表)
+    function updateDashboard() {
+        const viewMonth = document.getElementById('viewMonth').value; // 例如 "2026-06"
+        if(!viewMonth) return;
+
+        // 篩選出該月份的資料
+        const monthlyRecords = records.filter(r => r.date.startsWith(viewMonth));
+        
+        let totalInc = 0;
+        let totalExp = 0;
+        let expByCategory = { '日常費用': 0, '旅遊費用': 0, '特殊花費': 0 };
+
+        const listDiv = document.getElementById('recordList');
+        listDiv.innerHTML = '';
+
+        if(monthlyRecords.length === 0) {
+            listDiv.innerHTML = '<div style="text-align:center; padding:10px; color:#a0a5ab;">本月尚無紀錄</div>';
+        }
+
+        monthlyRecords.forEach(r => {
+            // 計算總和與分類統計
+            if(r.type === 'income') {
+                totalInc += r.amount;
+            } else {
+                totalExp += r.amount;
+                if(expByCategory[r.category] !== undefined) {
+                    expByCategory[r.category] += r.amount;
+                }
+            }
+
+            // 產生列表 HTML
+            const colorClass = r.type === 'income' ? 'text-income' : 'text-expense';
+            const sign = r.type === 'income' ? '+' : '-';
+            const noteHtml = r.note ? ` | ${r.note}` : '';
+            
+            listDiv.innerHTML += `
+                <div class="record-item">
+                    <div class="record-info">
+                        <div>${r.category}</div>
+                        <span>${r.date}${noteHtml}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="${colorClass}" style="font-weight: bold; margin-bottom: 4px;">${sign}$${r.amount.toLocaleString()}</div>
+                        <button class="delete-btn" onclick="deleteRecord(${r.id})">刪除</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        // 更新上方數字
+        const net = totalInc - totalExp;
+        document.getElementById('totalIncome').innerText = `$${totalInc.toLocaleString()}`;
+        document.getElementById('totalExpense').innerText = `$${totalExp.toLocaleString()}`;
+        
+        const netEl = document.getElementById('netBalance');
+        netEl.innerText = `$${net.toLocaleString()}`;
+        netEl.style.color = net >= 0 ? 'var(--income)' : 'var(--expense)';
+
+        // 更新圓餅圖
+        updateChart(expByCategory);
+    }
+
+    // 繪製/更新圓餅圖
+    function updateChart(expByCategory) {
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        const dataValues = [expByCategory['日常費用'], expByCategory['旅遊費用'], expByCategory['特殊花費']];
+        
+        // 如果本月完全沒支出，顯示空圖表
+        const hasData = dataValues.some(v => v > 0);
+
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['日常費用', '旅遊費用', '特殊花費'],
+                datasets: [{
+                    data: hasData ? dataValues : [1],
+                    backgroundColor: hasData ? [
+                        '#60a5fa', // 日常 - 藍色
+                        '#fbbf24', // 旅遊 - 黃色
+                        '#c084fc'  // 特殊 - 紫色
+                    ] : ['#4f545c'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#eef0f2', font: { size: 12 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if(!hasData) return ' 尚無支出';
+                                let val = context.raw || 0;
+                                return ' $' + val.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    }
+</script>
+</body>
+</html>
