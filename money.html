@@ -36,7 +36,6 @@
         /* 表單輸入區 */
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-muted); }
-        /* 移除 inputmode 讓手機鍵盤可以輸入負號 */
         input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-color); color: var(--text-main); outline: none; }
         input:focus, select:focus { border-color: var(--accent); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
@@ -61,6 +60,10 @@
         
         /* 圖表區 */
         .chart-container { position: relative; height: 200px; width: 100%; margin-top: 10px; }
+        
+        /* 匯出按鈕微調 */
+        .export-btn { padding: 4px 10px; font-size: 0.85rem; background-color: var(--accent); color: var(--bg-color); border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .export-btn:active { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -116,7 +119,7 @@
 
         <div class="form-group">
             <label>金額</label>
-            <input type="number" id="inputAmount" placeholder="輸入金額（收入可填負數）">
+            <input type="number" id="inputAmount" placeholder="輸入金額（損益虧損可填負數）">
         </div>
 
         <div class="form-group">
@@ -128,7 +131,10 @@
     </div>
 
     <div class="card">
-        <div class="card-title">本月明細</div>
+        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>本月明細</span>
+            <button class="export-btn" onclick="exportToExcel()">匯出 Excel</button>
+        </div>
         <div class="record-list" id="recordList"></div>
     </div>
 </div>
@@ -179,7 +185,6 @@
             return;
         }
 
-        // 核心邏輯修改：支出不能是負數或零，但收入可以！
         if (currentType === 'expense' && amount <= 0) {
             alert('支出金額必須大於 0 喔！');
             return;
@@ -220,9 +225,8 @@
         }
 
         monthlyRecords.forEach(r => {
-            // 計算總和與分類統計
             if(r.type === 'income') {
-                totalInc += r.amount; // 若 amount 是負的，這裡會自動相減
+                totalInc += r.amount;
             } else {
                 totalExp += r.amount;
                 if(expByCategory[r.category] !== undefined) {
@@ -230,10 +234,9 @@
                 }
             }
 
-            // 處理介面顯示邏輯（虧損的收入變紅色）
             let colorClass = 'text-expense';
             let sign = '-';
-            let displayAmount = Math.abs(r.amount); // 取絕對值方便排版
+            let displayAmount = Math.abs(r.amount);
 
             if (r.type === 'income') {
                 if (r.amount >= 0) {
@@ -241,7 +244,7 @@
                     sign = '+';
                 } else {
                     colorClass = 'text-expense';
-                    sign = '-'; // 虧錢一樣顯示負號，但顏色變紅
+                    sign = '-';
                 }
             }
 
@@ -307,6 +310,44 @@
                 cutout: '70%'
             }
         });
+    }
+
+    // 核心匯出功能：生成符合 Excel 標準的 CSV 檔案
+    function exportToExcel() {
+        const viewMonth = document.getElementById('viewMonth').value;
+        if(!viewMonth) return;
+
+        // 篩選當月資料
+        const monthlyRecords = records.filter(r => r.date.startsWith(viewMonth));
+        if(monthlyRecords.length === 0) {
+            alert('本月沒有任何紀錄可以匯出喔！');
+            return;
+        }
+
+        // \ufeff 是 UTF-8 的 BOM 頭，作用是強制讓 Excel 用 UTF-8 開啟，中文才不會變亂碼
+        let csvContent = "\ufeff";
+        csvContent += "日期,款項類型,分類,金額,備註\n";
+
+        // 匯出時將陣列反轉，讓 Excel 呈現「時間正序」（從月初排到月底），比較符合報表習慣
+        const exportData = [...monthlyRecords].reverse();
+
+        exportData.forEach(r => {
+            const typeStr = r.type === 'income' ? '收入' : '支出';
+            // 過濾掉備註中的英文逗號，避免破壞 CSV 欄位結構
+            const safeNote = r.note ? r.note.replace(/,/g, '，') : '';
+            csvContent += `${r.date},${typeStr},${r.category},${r.amount},${safeNote}\n`;
+        });
+
+        // 建立 Blob 物件與下載連結
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `財務記帳本_${viewMonth}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
 </body>
