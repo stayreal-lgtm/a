@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>清晰分帳計算機 v3 (極限壓縮版)</title>
+    <title>清晰分帳計算機 v4 (優化版)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <style>
         :root { --bg-color: #f8f9fa; --card-bg: #ffffff; --text-color: #2d3748; --primary: #4a5568; --primary-light: #edf2f7; --accent: #3182ce; --border: #e2e8f0; }
@@ -30,6 +30,8 @@
         .result-row { padding: 10px 0; border-bottom: 1px dotted var(--border); font-size: 1rem; }
         .result-row span { font-weight: bold; color: #dd6b20; }
         .share-box { text-align: center; background: #ebf8ff; border: 1px dashed #bee3f8; }
+        .total-expense-box { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+        .total-expense-item { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.95rem; }
     </style>
 </head>
 <body>
@@ -89,7 +91,6 @@
         const hash = window.location.hash;
         if (hash && hash.startsWith('#data=')) {
             try {
-                // 使用 LZString 進行終極解壓縮
                 const compressedData = hash.substring(6);
                 const decodedJson = LZString.decompressFromEncodedURIComponent(compressedData);
                 state = JSON.parse(decodedJson);
@@ -173,9 +174,16 @@
         } else {
             historyDiv.innerHTML = '';
             state.expenses.forEach(e => {
+                // 優化 3：算出每人平均並顯示
+                const avg = Math.round(e.amount / e.splits.length);
                 historyDiv.innerHTML += `
                     <div class="item-row">
-                        <div><strong>${e.title}</strong><br><span style="font-size:0.85rem; color:#718096;">${e.payer} 付 $${e.amount} (${e.splits.length}人分)</span></div>
+                        <div>
+                            <strong>${e.title}</strong><br>
+                            <span style="font-size:0.85rem; color:#718096;">
+                                ${e.payer} 付 $${e.amount} (${e.splits.length}人分，每人約 $${avg})
+                            </span>
+                        </div>
                         <button class="btn-danger" onclick="removeExpense(${e.id})">刪除</button>
                     </div>`;
             });
@@ -188,8 +196,11 @@
         if (state.participants.length < 2) { resultDiv.innerHTML = '需要至少 2 位成員才能結算。'; return; }
 
         let debts = {};
+        let personalTotal = {}; // 優化 2：用來存每個人的總花費
+        
         state.participants.forEach(p1 => {
             debts[p1] = {};
+            personalTotal[p1] = 0;
             state.participants.forEach(p2 => { debts[p1][p2] = 0; });
         });
 
@@ -197,15 +208,19 @@
             const payer = e.payer;
             const perShare = e.amount / e.splits.length;
             e.splits.forEach(borrower => {
+                // 累加每個人應負擔的總費用
+                if (personalTotal[borrower] !== undefined) {
+                    personalTotal[borrower] += perShare;
+                }
+                
                 if (borrower !== payer && debts[borrower] && debts[borrower][payer] !== undefined) {
                     debts[borrower][payer] += perShare;
                 }
             });
         });
 
-        let outputHtml = '';
-        let hasDebts = false;
-
+        // 整理轉帳清單以方便排序
+        let transfers = [];
         for (let i = 0; i < state.participants.length; i++) {
             for (let j = i + 1; j < state.participants.length; j++) {
                 const pA = state.participants[i];
@@ -216,26 +231,44 @@
 
                 if (amtAtoB > amtBtoA) {
                     let finalOwe = Math.round(amtAtoB - amtBtoA);
-                    if (finalOwe > 0) {
-                        outputHtml += `<div class="result-row">${pA} 應該給 ${pB} <span>$${finalOwe}</span> 元</div>`;
-                        hasDebts = true;
-                    }
+                    if (finalOwe > 0) transfers.push({ from: pA, to: pB, amount: finalOwe });
                 } else if (amtBtoA > amtAtoB) {
                     let finalOwe = Math.round(amtBtoA - amtAtoB);
-                    if (finalOwe > 0) {
-                        outputHtml += `<div class="result-row">${pB} 應該給 ${pA} <span>$${finalOwe}</span> 元</div>`;
-                        hasDebts = true;
-                    }
+                    if (finalOwe > 0) transfers.push({ from: pB, to: pA, amount: finalOwe });
                 }
             }
         }
-        resultDiv.innerHTML = hasDebts ? outputHtml : '帳務已全部平分，目前互不相欠！';
+
+        // 優化 1：將轉帳結果依照「付款人(from)」排序分群
+        transfers.sort((a, b) => a.from.localeCompare(b.from));
+
+        let outputHtml = '';
+
+        // 渲染優化 2：每人應負擔總額區塊
+        outputHtml += '<div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed var(--border);">';
+        outputHtml += '<div style="font-weight: 600; margin-bottom: 8px; color: var(--primary);">📊 每人實際花費總額：</div>';
+        outputHtml += '<div class="total-expense-box">';
+        state.participants.forEach(p => {
+            outputHtml += `<div class="total-expense-item">${p}: <span style="color: #2b6cb0; font-weight: bold;">$${Math.round(personalTotal[p])}</span></div>`;
+        });
+        outputHtml += '</div></div>';
+
+        // 渲染轉帳明細
+        outputHtml += '<div style="font-weight: 600; margin-bottom: 8px; color: var(--primary);">💸 最終轉帳指示：</div>';
+        if (transfers.length > 0) {
+            transfers.forEach(t => {
+                outputHtml += `<div class="result-row">${t.from} 應該給 ${t.to} <span>$${t.amount}</span> 元</div>`;
+            });
+        } else {
+            outputHtml += '<div style="color: #718096; margin-top: 8px;">帳務已全部平分，目前互不相欠！</div>';
+        }
+
+        resultDiv.innerHTML = outputHtml;
     }
 
     function copyShareLink() {
         try {
             const jsonStr = JSON.stringify(state);
-            // 使用 LZString 進行極限壓縮，產生 URL 安全的字串
             const compressedBase64 = LZString.compressToEncodedURIComponent(jsonStr);
             const shareUrl = window.location.origin + window.location.pathname + '#data=' + compressedBase64;
             
