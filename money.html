@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>個人專屬記帳本</title>
+    <!-- 引入 Chart.js 用來繪製資金流向圖表 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* 消光槍灰與科技銀 質感主題 */
         :root {
-            --bg-color: #2b2d31; /* 消光槍灰背景 */
-            --card-bg: #383a40;  /* 卡片底色 */
-            --text-main: #eef0f2; /* 科技銀主文字 */
+            --bg-color: #2b2d31; 
+            --card-bg: #383a40;  
+            --text-main: #eef0f2; 
             --text-muted: #a0a5ab;
-            --accent: #8fa1b3;   /* 銀色點綴 */
-            --income: #4ade80;   /* 收入綠 */
-            --expense: #f87171;  /* 支出紅 */
+            --accent: #8fa1b3;   
+            --income: #4ade80;   
+            --expense: #f87171;  
             --border: #4f545c;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -71,6 +72,7 @@
 <div class="container">
     <h1>個人專屬記帳本</h1>
 
+    <!-- 財務總覽 -->
     <div class="card">
         <div class="month-selector">
             <div class="card-title" style="border:none; margin:0; padding:0;">本月資金總覽</div>
@@ -92,6 +94,7 @@
         </div>
     </div>
 
+    <!-- 資金流向圖表 -->
     <div class="card">
         <div class="card-title">支出資金流向</div>
         <div class="chart-container">
@@ -99,6 +102,7 @@
         </div>
     </div>
 
+    <!-- 新增帳務 -->
     <div class="card">
         <div class="card-title">新增紀錄</div>
         
@@ -130,6 +134,7 @@
         <button class="submit-btn" onclick="saveRecord()">儲存紀錄</button>
     </div>
 
+    <!-- 歷史明細（內含匯出按鈕） -->
     <div class="card">
         <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
             <span>本月明細</span>
@@ -312,7 +317,7 @@
         });
     }
 
-    // 核心匯出功能：生成符合 Excel 標準的 CSV 檔案
+    // 升級版匯出功能：加入總結統計
     function exportToExcel() {
         const viewMonth = document.getElementById('viewMonth').value;
         if(!viewMonth) return;
@@ -324,21 +329,35 @@
             return;
         }
 
-        // \ufeff 是 UTF-8 的 BOM 頭，作用是強制讓 Excel 用 UTF-8 開啟，中文才不會變亂碼
+        // 先計算當月總額
+        let totalInc = 0;
+        let totalExp = 0;
+        monthlyRecords.forEach(r => {
+            if(r.type === 'income') totalInc += r.amount;
+            else totalExp += r.amount;
+        });
+        const netBalance = totalInc - totalExp;
+
+        // 建立 CSV 內容 (\ufeff 防亂碼)
         let csvContent = "\ufeff";
         csvContent += "日期,款項類型,分類,金額,備註\n";
 
-        // 匯出時將陣列反轉，讓 Excel 呈現「時間正序」（從月初排到月底），比較符合報表習慣
+        // 明細資料
         const exportData = [...monthlyRecords].reverse();
-
         exportData.forEach(r => {
             const typeStr = r.type === 'income' ? '收入' : '支出';
-            // 過濾掉備註中的英文逗號，避免破壞 CSV 欄位結構
             const safeNote = r.note ? r.note.replace(/,/g, '，') : '';
             csvContent += `${r.date},${typeStr},${r.category},${r.amount},${safeNote}\n`;
         });
 
-        // 建立 Blob 物件與下載連結
+        // 加上總計區塊（對齊 C、D 欄位，也就是分類與金額）
+        csvContent += "\n";
+        csvContent += ",,📊 【本月統計】,,\n";
+        csvContent += `,,總收入,${totalInc},\n`;
+        csvContent += `,,總支出,${totalExp},\n`;
+        csvContent += `,,本月結餘,${netBalance},\n`;
+
+        // 觸發下載
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
