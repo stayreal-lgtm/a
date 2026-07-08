@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高階自行車 CRM 系統</title>
+    <title>嘉義店客戶管理</title>
     <style>
         :root {
             --bg-color: #1a1a1d;
             --panel-bg: #2d2d30;
             --text-main: #f0f0f0;
             --text-muted: #9e9e9e;
-            --accent: #d4af37; /* 香檳金，帶出高階感 */
+            --accent: #d4af37; 
             --alert: #e53935;
             --success: #43a047;
             --border: #424242;
@@ -35,8 +35,9 @@
         .form-group { margin-bottom: 12px; }
         .form-group.full-width { grid-column: 1 / -1; }
         label { display: block; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-muted); }
-        input, select { width: 100%; padding: 10px; background: #1e1e1e; border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; outline: none; }
-        input:focus { border-color: var(--accent); }
+        input, select, textarea { width: 100%; padding: 10px; background: #1e1e1e; border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; outline: none; }
+        textarea { resize: vertical; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
         button.action-btn { width: 100%; padding: 12px; background: var(--accent); color: #1a1a1d; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; }
@@ -54,7 +55,7 @@
         .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; }
         .info-item strong { color: var(--text-main); }
         
-        .fitting-box { background: rgba(212, 175, 55, 0.1); border: 1px dashed var(--accent); padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.9rem; }
+        .fitting-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--accent); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
         
         .card-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
         .btn-small { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
@@ -73,7 +74,7 @@
 <body>
 
 <div class="container">
-    <h1>VeloPro 客戶關係管理</h1>
+    <h1>嘉義店客戶管理</h1>
 
     <div class="tabs">
         <div class="tab-btn active" onclick="switchTab('list')">車友總覽</div>
@@ -97,14 +98,30 @@
                 <input type="text" id="cLine" placeholder="方便對照群組名稱">
             </div>
             <div class="form-group">
-                <label>購買車款 / 輪組</label>
-                <input type="text" id="cBike" placeholder="例如：Giant TCR Advanced Pro / CADEX 50">
+                <label>買車日期</label>
+                <input type="date" id="cPurchaseDate">
             </div>
             <div class="form-group full-width">
-                <label>上次大保養日期 * (用於計算保養提醒)</label>
-                <input type="date" id="cMainDate">
+                <label>騎乘車款</label>
+                <input type="text" id="cBikeModel" placeholder="例如：Giant TCR Advanced Pro / CADEX 50">
             </div>
             
+            <div class="form-group full-width" style="margin-top: 10px;">
+                <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">📊 行銷紀錄</h3>
+            </div>
+            <div class="form-group">
+                <label>上次大保養日期 *</label>
+                <input type="date" id="cMainDate">
+            </div>
+            <div class="form-group">
+                <label>約騎意願</label>
+                <select id="cEventWilling">
+                    <option value="高">高</option>
+                    <option value="中">中</option>
+                    <option value="低">低</option>
+                </select>
+            </div>
+
             <div class="form-group full-width" style="margin-top: 10px;">
                 <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">⚙️ Fitting 數據紀錄</h3>
             </div>
@@ -120,14 +137,15 @@
                 <label>Stack (mm)</label>
                 <input type="number" id="fStack" placeholder="例如：545">
             </div>
-            <div class="form-group">
-                <label>約騎意願</label>
-                <select id="cEventWilling">
-                    <option value="高">高 (常跟騎)</option>
-                    <option value="中">中 (看路線)</option>
-                    <option value="低">低 (偏好獨騎)</option>
-                </select>
+
+            <div class="form-group full-width" style="margin-top: 10px;">
+                <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">📝 其他資訊</h3>
             </div>
+            <div class="form-group full-width">
+                <label>特別備註</label>
+                <textarea id="cNotes" rows="3" placeholder="例如：客人想升級電子變速、偏好的把帶顏色、有提過想買功率計..."></textarea>
+            </div>
+
         </div>
         <button class="action-btn" onclick="saveCustomer()">儲存客戶資料</button>
     </div>
@@ -190,9 +208,11 @@
             name: name,
             phone: phone,
             line: document.getElementById('cLine').value.trim() || '未提供',
-            bike: document.getElementById('cBike').value.trim() || '未填寫',
+            purchaseDate: document.getElementById('cPurchaseDate').value || '未填寫',
+            bikeModel: document.getElementById('cBikeModel').value.trim() || '未填寫',
             lastMainDate: mainDate,
             willing: document.getElementById('cEventWilling').value,
+            notes: document.getElementById('cNotes').value.trim() || '無',
             fitting: {
                 saddle: document.getElementById('fSaddle').value || 'N/A',
                 reach: document.getElementById('fReach').value || 'N/A',
@@ -206,7 +226,8 @@
         alert('客戶建檔成功！');
         
         // 清空表單
-        document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"]').forEach(input => input.value = '');
+        document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], input[type="date"], textarea').forEach(input => input.value = '');
+        document.getElementById('cMainDate').value = new Date().toISOString().split('T')[0]; // 保留今日預設
         switchTab('list');
     }
 
@@ -243,10 +264,14 @@
 
         // 依據保養緊急程度排序 (越久沒保養的排越上面)
         const sortedCustomers = [...customers].sort((a, b) => new Date(a.lastMainDate) - new Date(b.lastMainDate));
-
         const today = new Date();
 
         sortedCustomers.forEach(c => {
+            // 防呆處理：相容舊版本未建立的新欄位
+            const pDate = c.purchaseDate || '未填寫';
+            const bModel = c.bikeModel || c.bike || '未填寫'; // 舊版欄位名相容
+            const cNotes = c.notes || '無';
+
             // 計算距離上次保養經過了幾天
             const mainDate = new Date(c.lastMainDate);
             const diffTime = Math.abs(today - mainDate);
@@ -269,12 +294,16 @@
                     
                     <div class="info-grid">
                         <div class="info-item"><span>聯絡電話</span><strong>${c.phone}</strong></div>
-                        <div class="info-item"><span>車款 / 裝備</span><strong>${c.bike}</strong></div>
+                        <div class="info-item"><span>騎乘車款</span><strong>${bModel}</strong></div>
+                        <div class="info-item"><span>買車日期</span><strong>${pDate}</strong></div>
                         <div class="info-item"><span>上次保養</span><strong>${c.lastMainDate}</strong></div>
-                        <div class="info-item"><span>約騎意願</span><strong>${c.willing}</strong></div>
+                        <div class="info-item" style="grid-column: 1 / -1;"><span>約騎意願</span><strong>${c.willing}</strong></div>
                     </div>
 
                     <div class="fitting-box">
+                        <div style="margin-bottom: 8px; border-bottom: 1px dotted var(--border); padding-bottom: 8px;">
+                            <strong>📝 特別備註：</strong> <span style="color: var(--text-main);">${cNotes}</span>
+                        </div>
                         <strong>📏 Fitting 數據：</strong> 
                         座高 ${c.fitting.saddle}cm | Reach ${c.fitting.reach}mm | Stack ${c.fitting.stack}mm
                     </div>
@@ -304,7 +333,8 @@
         let text = `🚴‍♂️ 【${eventName}】邀請名單\n`;
         text += `--------------------------\n`;
         targetRiders.forEach(r => {
-            text += `[ ] ${r.name} (LINE: ${r.line}) - 騎乘: ${r.bike}\n`;
+            const bModel = r.bikeModel || r.bike || '未填寫';
+            text += `[ ] ${r.name} (LINE: ${r.line}) - 車款: ${bModel}\n`;
         });
         text += `--------------------------\n`;
         text += `老闆，以上是本次建議發送 LINE 邀請的車友名單！`;
@@ -317,19 +347,22 @@
         if(customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
 
         let csvContent = "\ufeff"; // BOM
-        csvContent += "姓名,電話,LINE名稱,購買車款,上次保養日期,約騎意願,座高(cm),Reach(mm),Stack(mm)\n";
+        csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,上次保養日期,約騎意願,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
 
         customers.forEach(c => {
             const safeName = c.name.replace(/,/g, '，');
-            const safeBike = c.bike.replace(/,/g, '，');
-            csvContent += `${safeName},${c.phone},${c.line},${safeBike},${c.lastMainDate},${c.willing},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
+            const pDate = c.purchaseDate || '未填寫';
+            const bModel = (c.bikeModel || c.bike || '未填寫').replace(/,/g, '，');
+            const safeNotes = (c.notes || '無').replace(/,/g, '，').replace(/\n/g, ' '); // 替換換行符號以防破壞 CSV 格式
+
+            csvContent += `${safeName},${c.phone},${c.line},${pDate},${bModel},${c.lastMainDate},${c.willing},${safeNotes},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `VeloPro_客戶名單_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `嘉義店_客戶名單_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
