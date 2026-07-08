@@ -50,6 +50,7 @@
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .badge.alert { background: rgba(229, 57, 53, 0.2); color: var(--alert); border: 1px solid var(--alert); }
         .badge.ok { background: rgba(67, 160, 71, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .badge.none { background: rgba(158, 158, 158, 0.1); color: var(--text-muted); border: 1px solid var(--border); }
         
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.95rem; }
         .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; }
@@ -112,7 +113,7 @@
                 <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">📊 行銷紀錄</h3>
             </div>
             <div class="form-group">
-                <label>上次大保養日期 *</label>
+                <label>上次大保養日期</label>
                 <input type="date" id="cMainDate">
             </div>
             <div class="form-group">
@@ -176,17 +177,15 @@
 
 <script>
     let customers = JSON.parse(localStorage.getItem('veloCrmData')) || [];
-    let editingCustomerId = null; // 用來追蹤目前正在修改哪位客人
+    let editingCustomerId = null; 
 
     window.onload = function() {
-        document.getElementById('cMainDate').value = new Date().toISOString().split('T')[0];
         renderCustomers();
     };
 
     // 清空表單並恢復為「新增模式」
     function resetForm() {
         document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], input[type="date"], textarea').forEach(input => input.value = '');
-        document.getElementById('cMainDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('cEventWilling').value = '高';
         
         document.getElementById('formTitle').innerText = '建立新車友檔案';
@@ -196,7 +195,6 @@
 
     // 頁籤切換邏輯
     function switchTab(tabId) {
-        // 如果手動點擊「新增建檔」頁籤，就清空表單確保是新增狀態
         if (tabId === 'add' && event && event.target.id === 'tabBtnAdd') {
             resetForm();
         }
@@ -204,7 +202,6 @@
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
         
-        // 點亮的按鈕邏輯
         if(tabId === 'list') document.querySelectorAll('.tab-btn')[0].classList.add('active');
         if(tabId === 'add') document.querySelectorAll('.tab-btn')[1].classList.add('active');
         if(tabId === 'events') document.querySelectorAll('.tab-btn')[2].classList.add('active');
@@ -224,7 +221,7 @@
         document.getElementById('cLine').value = c.line === '未提供' ? '' : c.line;
         document.getElementById('cPurchaseDate').value = c.purchaseDate === '未填寫' ? '' : c.purchaseDate;
         document.getElementById('cBikeModel').value = (c.bikeModel || c.bike) === '未填寫' ? '' : (c.bikeModel || c.bike);
-        document.getElementById('cMainDate').value = c.lastMainDate;
+        document.getElementById('cMainDate').value = (c.lastMainDate === '未填寫' || !c.lastMainDate) ? '' : c.lastMainDate;
         document.getElementById('cEventWilling').value = c.willing;
         document.getElementById('cNotes').value = c.notes === '無' ? '' : c.notes;
         document.getElementById('fSaddle').value = c.fitting.saddle === 'N/A' ? '' : c.fitting.saddle;
@@ -235,7 +232,7 @@
         document.getElementById('formTitle').innerText = '✏️ 修改車友檔案';
         document.getElementById('saveBtn').innerText = '更新客戶資料';
 
-        switchTab('add'); // 切換到表單頁
+        switchTab('add'); 
     }
 
     // 儲存/更新客戶資料
@@ -244,8 +241,9 @@
         const phone = document.getElementById('cPhone').value.trim();
         const mainDate = document.getElementById('cMainDate').value;
 
-        if (!name || !phone || !mainDate) {
-            alert('姓名、電話與保養日期為必填欄位！');
+        // 移除對保養日期的強制檢查
+        if (!name || !phone) {
+            alert('姓名與電話為必填欄位！');
             return;
         }
 
@@ -255,7 +253,7 @@
             line: document.getElementById('cLine').value.trim() || '未提供',
             purchaseDate: document.getElementById('cPurchaseDate').value || '未填寫',
             bikeModel: document.getElementById('cBikeModel').value.trim() || '未填寫',
-            lastMainDate: mainDate,
+            lastMainDate: mainDate || '未填寫', // 如果沒填，自動補上「未填寫」
             willing: document.getElementById('cEventWilling').value,
             notes: document.getElementById('cNotes').value.trim() || '無',
             fitting: {
@@ -266,15 +264,13 @@
         };
 
         if (editingCustomerId) {
-            // 更新舊資料
             const index = customers.findIndex(c => c.id === editingCustomerId);
             if(index !== -1) {
-                customerData.id = editingCustomerId; // 保留原本的 ID
+                customerData.id = editingCustomerId; 
                 customers[index] = customerData;
             }
             alert('客戶資料更新成功！');
         } else {
-            // 新增資料
             customerData.id = Date.now();
             customers.push(customerData);
             alert('客戶建檔成功！');
@@ -306,7 +302,7 @@
         }
     }
 
-    // 渲染客戶列表
+    // 渲染客戶列表與保養提醒計算
     function renderCustomers() {
         const listDiv = document.getElementById('customerList');
         listDiv.innerHTML = '';
@@ -316,23 +312,36 @@
             return;
         }
 
-        const sortedCustomers = [...customers].sort((a, b) => new Date(a.lastMainDate) - new Date(b.lastMainDate));
+        // 排序邏輯：有保養日期的按時間久遠排上面，"未填寫"的排最下面
+        const sortedCustomers = [...customers].sort((a, b) => {
+            if (a.lastMainDate === '未填寫' && b.lastMainDate === '未填寫') return 0;
+            if (a.lastMainDate === '未填寫') return 1;
+            if (b.lastMainDate === '未填寫') return -1;
+            return new Date(a.lastMainDate) - new Date(b.lastMainDate);
+        });
+
         const today = new Date();
 
         sortedCustomers.forEach(c => {
             const pDate = c.purchaseDate || '未填寫';
             const bModel = c.bikeModel || c.bike || '未填寫'; 
             const cNotes = c.notes || '無';
-
-            const mainDate = new Date(c.lastMainDate);
-            const diffTime = Math.abs(today - mainDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             let badgeHtml = '';
-            if(diffDays > 180) {
-                badgeHtml = `<span class="badge alert">⚠️ 距上次保養已 ${diffDays} 天</span>`;
+
+            // 如果保養日期未填寫，顯示灰色 Badge
+            if (c.lastMainDate === '未填寫' || !c.lastMainDate) {
+                badgeHtml = `<span class="badge none">無保養紀錄</span>`;
             } else {
-                badgeHtml = `<span class="badge ok">✅ 狀況良好 (${diffDays} 天)</span>`;
+                const mainDate = new Date(c.lastMainDate);
+                const diffTime = Math.abs(today - mainDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if(diffDays > 180) {
+                    badgeHtml = `<span class="badge alert">⚠️ 距上次保養已 ${diffDays} 天</span>`;
+                } else {
+                    badgeHtml = `<span class="badge ok">✅ 狀況良好 (${diffDays} 天)</span>`;
+                }
             }
 
             listDiv.innerHTML += `
