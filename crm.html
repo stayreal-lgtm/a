@@ -53,7 +53,7 @@
         .badge.none { background: rgba(158, 158, 158, 0.1); color: var(--text-muted); border: 1px solid var(--border); }
         
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.95rem; }
-        .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; }
+        .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 2px; }
         .info-item strong { color: var(--text-main); }
         
         .fitting-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--accent); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
@@ -108,6 +108,10 @@
                 <label>騎乘車款</label>
                 <input type="text" id="cBikeModel" placeholder="例如：Giant TCR Advanced Pro / CADEX 50">
             </div>
+            <div class="form-group full-width">
+                <label>客戶關聯銷售</label>
+                <input type="text" id="cRelatedSales" placeholder="例如：安全帽、車衣、碼表、卡鞋...">
+            </div>
             
             <div class="form-group full-width" style="margin-top: 10px;">
                 <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">📊 行銷紀錄</h3>
@@ -117,12 +121,17 @@
                 <input type="date" id="cMainDate">
             </div>
             <div class="form-group">
-                <label>約騎意願</label>
-                <select id="cEventWilling">
+                <label>騎乘強度</label>
+                <select id="cRidingIntensity">
+                    <option value="">請選擇...</option>
                     <option value="高">高</option>
                     <option value="中">中</option>
                     <option value="低">低</option>
                 </select>
+            </div>
+            <div class="form-group full-width">
+                <label>更換零件紀錄</label>
+                <input type="text" id="cPartsReplaced" placeholder="例如：更換煞車皮、把帶、外胎...">
             </div>
 
             <div class="form-group full-width" style="margin-top: 10px;">
@@ -165,7 +174,7 @@
         <h2>發起約騎活動</h2>
         <div class="event-invite-box">
             <input type="text" id="eventName" placeholder="例如：嘉義半天岩輕鬆騎、阿里山公路挑戰..." style="margin-bottom: 10px; font-size: 1.1rem; text-align: center;">
-            <p>系統將自動篩選「約騎意願：高與中」的車友名單，方便老闆複製群發 LINE 邀請。</p>
+            <p>系統將自動篩選「騎乘強度：高與中」的車友名單，方便老闆複製群發 LINE 邀請。</p>
             <button class="btn-small btn-update" style="padding: 10px 20px; font-size: 1rem;" onclick="generateInviteList()">產生邀請名單</button>
         </div>
         <div id="inviteResult" style="background: #111; padding: 15px; border-radius: 8px; min-height: 100px; white-space: pre-wrap; font-family: monospace; color: var(--accent);">
@@ -186,7 +195,7 @@
     // 清空表單並恢復為「新增模式」
     function resetForm() {
         document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], input[type="date"], textarea').forEach(input => input.value = '');
-        document.getElementById('cEventWilling').value = '高';
+        document.getElementById('cRidingIntensity').value = '';
         
         document.getElementById('formTitle').innerText = '建立新車友檔案';
         document.getElementById('saveBtn').innerText = '儲存客戶資料';
@@ -221,8 +230,10 @@
         document.getElementById('cLine').value = c.line === '未提供' ? '' : c.line;
         document.getElementById('cPurchaseDate').value = c.purchaseDate === '未填寫' ? '' : c.purchaseDate;
         document.getElementById('cBikeModel').value = (c.bikeModel || c.bike) === '未填寫' ? '' : (c.bikeModel || c.bike);
+        document.getElementById('cRelatedSales').value = c.relatedSales === '無' ? '' : (c.relatedSales || '');
         document.getElementById('cMainDate').value = (c.lastMainDate === '未填寫' || !c.lastMainDate) ? '' : c.lastMainDate;
-        document.getElementById('cEventWilling').value = c.willing;
+        document.getElementById('cPartsReplaced').value = c.partsReplaced === '無' ? '' : (c.partsReplaced || '');
+        document.getElementById('cRidingIntensity').value = c.intensity || c.willing || '';
         document.getElementById('cNotes').value = c.notes === '無' ? '' : c.notes;
         document.getElementById('fSaddle').value = c.fitting.saddle === 'N/A' ? '' : c.fitting.saddle;
         document.getElementById('fReach').value = c.fitting.reach === 'N/A' ? '' : c.fitting.reach;
@@ -241,7 +252,6 @@
         const phone = document.getElementById('cPhone').value.trim();
         const mainDate = document.getElementById('cMainDate').value;
 
-        // 移除對保養日期的強制檢查
         if (!name || !phone) {
             alert('姓名與電話為必填欄位！');
             return;
@@ -253,8 +263,10 @@
             line: document.getElementById('cLine').value.trim() || '未提供',
             purchaseDate: document.getElementById('cPurchaseDate').value || '未填寫',
             bikeModel: document.getElementById('cBikeModel').value.trim() || '未填寫',
-            lastMainDate: mainDate || '未填寫', // 如果沒填，自動補上「未填寫」
-            willing: document.getElementById('cEventWilling').value,
+            relatedSales: document.getElementById('cRelatedSales').value.trim() || '無',
+            lastMainDate: mainDate || '未填寫', 
+            partsReplaced: document.getElementById('cPartsReplaced').value.trim() || '無',
+            intensity: document.getElementById('cRidingIntensity').value || '未選擇',
             notes: document.getElementById('cNotes').value.trim() || '無',
             fitting: {
                 saddle: document.getElementById('fSaddle').value || 'N/A',
@@ -323,13 +335,17 @@
         const today = new Date();
 
         sortedCustomers.forEach(c => {
+            // 防呆處理與向下相容
             const pDate = c.purchaseDate || '未填寫';
             const bModel = c.bikeModel || c.bike || '未填寫'; 
+            const cRelated = c.relatedSales || '無';
+            const cParts = c.partsReplaced || '無';
+            const cIntensity = c.intensity || c.willing || '未選擇';
             const cNotes = c.notes || '無';
             
             let badgeHtml = '';
 
-            // 如果保養日期未填寫，顯示灰色 Badge
+            // 狀態標籤
             if (c.lastMainDate === '未填寫' || !c.lastMainDate) {
                 badgeHtml = `<span class="badge none">無保養紀錄</span>`;
             } else {
@@ -353,10 +369,13 @@
                     
                     <div class="info-grid">
                         <div class="info-item"><span>聯絡電話</span><strong>${c.phone}</strong></div>
-                        <div class="info-item"><span>騎乘車款</span><strong>${bModel}</strong></div>
                         <div class="info-item"><span>買車日期</span><strong>${pDate}</strong></div>
-                        <div class="info-item"><span>上次保養</span><strong>${c.lastMainDate}</strong></div>
-                        <div class="info-item" style="grid-column: 1 / -1;"><span>約騎意願</span><strong>${c.willing}</strong></div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1;"><span>騎乘車款</span><strong>${bModel}</strong></div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1;"><span>關聯銷售</span><strong>${cRelated}</strong></div>
+                        
+                        <div class="info-item" style="margin-top: 8px; border-top: 1px solid #424242; padding-top: 8px;"><span>上次保養</span><strong>${c.lastMainDate}</strong></div>
+                        <div class="info-item" style="margin-top: 8px; border-top: 1px solid #424242; padding-top: 8px;"><span>騎乘強度</span><strong>${cIntensity}</strong></div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1;"><span>零件更換紀錄</span><strong>${cParts}</strong></div>
                     </div>
 
                     <div class="fitting-box">
@@ -382,10 +401,11 @@
         const eventName = document.getElementById('eventName').value.trim() || '週末約騎活動';
         const resultDiv = document.getElementById('inviteResult');
         
-        const targetRiders = customers.filter(c => c.willing === '高' || c.willing === '中');
+        // 修改為篩選「騎乘強度」
+        const targetRiders = customers.filter(c => (c.intensity || c.willing) === '高' || (c.intensity || c.willing) === '中');
         
         if(targetRiders.length === 0) {
-            resultDiv.innerHTML = '目前沒有符合約騎意願的車友資料。';
+            resultDiv.innerHTML = '目前沒有符合「強度：高/中」的車友資料。';
             return;
         }
 
@@ -406,15 +426,18 @@
         if(customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
 
         let csvContent = "\ufeff"; 
-        csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,上次保養日期,約騎意願,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
+        csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,客戶關聯銷售,上次保養日期,更換零件紀錄,騎乘強度,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
 
         customers.forEach(c => {
             const safeName = c.name.replace(/,/g, '，');
             const pDate = c.purchaseDate || '未填寫';
             const bModel = (c.bikeModel || c.bike || '未填寫').replace(/,/g, '，');
+            const cRelated = (c.relatedSales || '無').replace(/,/g, '，');
+            const cParts = (c.partsReplaced || '無').replace(/,/g, '，');
+            const cIntensity = c.intensity || c.willing || '未選擇';
             const safeNotes = (c.notes || '無').replace(/,/g, '，').replace(/\n/g, ' '); 
 
-            csvContent += `${safeName},${c.phone},${c.line},${pDate},${bModel},${c.lastMainDate},${c.willing},${safeNotes},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
+            csvContent += `${safeName},${c.phone},${c.line},${pDate},${bModel},${cRelated},${c.lastMainDate},${cParts},${cIntensity},${safeNotes},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
