@@ -40,7 +40,7 @@
         input:focus, select:focus, textarea:focus { border-color: var(--accent); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
-        button.action-btn { width: 100%; padding: 12px; background: var(--accent); color: #1a1a1d; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; }
+        button.action-btn { width: 100%; padding: 12px; background: var(--accent); color: #1a1a1d; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; transition: 0.2s; }
         button.action-btn:hover { opacity: 0.9; }
 
         /* 客戶卡片 */
@@ -57,10 +57,12 @@
         
         .fitting-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--accent); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
         
-        .card-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
-        .btn-small { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .card-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+        .btn-small { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; }
         .btn-update { background: var(--success); color: white; }
+        .btn-edit { background: var(--accent); color: #1a1a1d; }
         .btn-delete { background: transparent; color: var(--alert); border: 1px solid var(--alert); }
+        .btn-small:hover { opacity: 0.8; }
 
         /* 約騎區塊 */
         .event-invite-box { background: #1e1e1e; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; border: 1px solid var(--border); }
@@ -78,12 +80,12 @@
 
     <div class="tabs">
         <div class="tab-btn active" onclick="switchTab('list')">車友總覽</div>
-        <div class="tab-btn" onclick="switchTab('add')">新增建檔</div>
+        <div class="tab-btn" id="tabBtnAdd" onclick="switchTab('add')">新增建檔</div>
         <div class="tab-btn" onclick="switchTab('events')">約騎名單</div>
     </div>
 
     <div id="tab-add" class="panel">
-        <h2>建立新車友檔案</h2>
+        <h2 id="formTitle">建立新車友檔案</h2>
         <div class="form-grid">
             <div class="form-group">
                 <label>姓名 / 暱稱 *</label>
@@ -147,7 +149,7 @@
             </div>
 
         </div>
-        <button class="action-btn" onclick="saveCustomer()">儲存客戶資料</button>
+        <button id="saveBtn" class="action-btn" onclick="saveCustomer()">儲存客戶資料</button>
     </div>
 
     <div id="tab-list" class="panel active">
@@ -173,26 +175,70 @@
 </div>
 
 <script>
-    // 資料庫初始化
     let customers = JSON.parse(localStorage.getItem('veloCrmData')) || [];
+    let editingCustomerId = null; // 用來追蹤目前正在修改哪位客人
 
     window.onload = function() {
         document.getElementById('cMainDate').value = new Date().toISOString().split('T')[0];
         renderCustomers();
     };
 
+    // 清空表單並恢復為「新增模式」
+    function resetForm() {
+        document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], input[type="date"], textarea').forEach(input => input.value = '');
+        document.getElementById('cMainDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('cEventWilling').value = '高';
+        
+        document.getElementById('formTitle').innerText = '建立新車友檔案';
+        document.getElementById('saveBtn').innerText = '儲存客戶資料';
+        editingCustomerId = null;
+    }
+
     // 頁籤切換邏輯
     function switchTab(tabId) {
+        // 如果手動點擊「新增建檔」頁籤，就清空表單確保是新增狀態
+        if (tabId === 'add' && event && event.target.id === 'tabBtnAdd') {
+            resetForm();
+        }
+
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
         
-        event.target.classList.add('active');
+        // 點亮的按鈕邏輯
+        if(tabId === 'list') document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        if(tabId === 'add') document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        if(tabId === 'events') document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        
         document.getElementById(`tab-${tabId}`).classList.add('active');
 
         if(tabId === 'list') renderCustomers();
     }
 
-    // 儲存客戶資料
+    // 進入修改模式，將資料帶入表單
+    function editCustomer(id) {
+        const c = customers.find(cust => cust.id === id);
+        if(!c) return;
+
+        document.getElementById('cName').value = c.name;
+        document.getElementById('cPhone').value = c.phone;
+        document.getElementById('cLine').value = c.line === '未提供' ? '' : c.line;
+        document.getElementById('cPurchaseDate').value = c.purchaseDate === '未填寫' ? '' : c.purchaseDate;
+        document.getElementById('cBikeModel').value = (c.bikeModel || c.bike) === '未填寫' ? '' : (c.bikeModel || c.bike);
+        document.getElementById('cMainDate').value = c.lastMainDate;
+        document.getElementById('cEventWilling').value = c.willing;
+        document.getElementById('cNotes').value = c.notes === '無' ? '' : c.notes;
+        document.getElementById('fSaddle').value = c.fitting.saddle === 'N/A' ? '' : c.fitting.saddle;
+        document.getElementById('fReach').value = c.fitting.reach === 'N/A' ? '' : c.fitting.reach;
+        document.getElementById('fStack').value = c.fitting.stack === 'N/A' ? '' : c.fitting.stack;
+
+        editingCustomerId = id;
+        document.getElementById('formTitle').innerText = '✏️ 修改車友檔案';
+        document.getElementById('saveBtn').innerText = '更新客戶資料';
+
+        switchTab('add'); // 切換到表單頁
+    }
+
+    // 儲存/更新客戶資料
     function saveCustomer() {
         const name = document.getElementById('cName').value.trim();
         const phone = document.getElementById('cPhone').value.trim();
@@ -203,8 +249,7 @@
             return;
         }
 
-        const newCustomer = {
-            id: Date.now(),
+        const customerData = {
             name: name,
             phone: phone,
             line: document.getElementById('cLine').value.trim() || '未提供',
@@ -220,14 +265,23 @@
             }
         };
 
-        customers.push(newCustomer);
+        if (editingCustomerId) {
+            // 更新舊資料
+            const index = customers.findIndex(c => c.id === editingCustomerId);
+            if(index !== -1) {
+                customerData.id = editingCustomerId; // 保留原本的 ID
+                customers[index] = customerData;
+            }
+            alert('客戶資料更新成功！');
+        } else {
+            // 新增資料
+            customerData.id = Date.now();
+            customers.push(customerData);
+            alert('客戶建檔成功！');
+        }
+
         localStorage.setItem('veloCrmData', JSON.stringify(customers));
-        
-        alert('客戶建檔成功！');
-        
-        // 清空表單
-        document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], input[type="date"], textarea').forEach(input => input.value = '');
-        document.getElementById('cMainDate').value = new Date().toISOString().split('T')[0]; // 保留今日預設
+        resetForm();
         switchTab('list');
     }
 
@@ -252,7 +306,7 @@
         }
     }
 
-    // 渲染客戶列表與保養提醒計算
+    // 渲染客戶列表
     function renderCustomers() {
         const listDiv = document.getElementById('customerList');
         listDiv.innerHTML = '';
@@ -262,22 +316,18 @@
             return;
         }
 
-        // 依據保養緊急程度排序 (越久沒保養的排越上面)
         const sortedCustomers = [...customers].sort((a, b) => new Date(a.lastMainDate) - new Date(b.lastMainDate));
         const today = new Date();
 
         sortedCustomers.forEach(c => {
-            // 防呆處理：相容舊版本未建立的新欄位
             const pDate = c.purchaseDate || '未填寫';
-            const bModel = c.bikeModel || c.bike || '未填寫'; // 舊版欄位名相容
+            const bModel = c.bikeModel || c.bike || '未填寫'; 
             const cNotes = c.notes || '無';
 
-            // 計算距離上次保養經過了幾天
             const mainDate = new Date(c.lastMainDate);
             const diffTime = Math.abs(today - mainDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
-            // 設定提醒邏輯：超過 180 天 (半年) 亮紅燈提醒
             let badgeHtml = '';
             if(diffDays > 180) {
                 badgeHtml = `<span class="badge alert">⚠️ 距上次保養已 ${diffDays} 天</span>`;
@@ -310,6 +360,7 @@
 
                     <div class="card-actions">
                         <button class="btn-small btn-update" onclick="updateMaintenance(${c.id})">更新為今日保養</button>
+                        <button class="btn-small btn-edit" onclick="editCustomer(${c.id})">修改資料</button>
                         <button class="btn-small btn-delete" onclick="deleteCustomer(${c.id})">刪除</button>
                     </div>
                 </div>
@@ -322,7 +373,6 @@
         const eventName = document.getElementById('eventName').value.trim() || '週末約騎活動';
         const resultDiv = document.getElementById('inviteResult');
         
-        // 篩選意願為 高 或 中 的車友
         const targetRiders = customers.filter(c => c.willing === '高' || c.willing === '中');
         
         if(targetRiders.length === 0) {
@@ -346,14 +396,14 @@
     function exportToExcel() {
         if(customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
 
-        let csvContent = "\ufeff"; // BOM
+        let csvContent = "\ufeff"; 
         csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,上次保養日期,約騎意願,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
 
         customers.forEach(c => {
             const safeName = c.name.replace(/,/g, '，');
             const pDate = c.purchaseDate || '未填寫';
             const bModel = (c.bikeModel || c.bike || '未填寫').replace(/,/g, '，');
-            const safeNotes = (c.notes || '無').replace(/,/g, '，').replace(/\n/g, ' '); // 替換換行符號以防破壞 CSV 格式
+            const safeNotes = (c.notes || '無').replace(/,/g, '，').replace(/\n/g, ' '); 
 
             csvContent += `${safeName},${c.phone},${c.line},${pDate},${bModel},${c.lastMainDate},${c.willing},${safeNotes},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
         });
