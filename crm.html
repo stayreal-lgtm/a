@@ -1,1 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高階自行車 CRM 系統</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1d;
+            --panel-bg: #2d2d30;
+            --text-main: #f0f0f0;
+            --text-muted: #9e9e9e;
+            --accent: #d4af37; /* 香檳金，帶出高階感 */
+            --alert: #e53935;
+            --success: #43a047;
+            --border: #424242;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; color: var(--accent); margin-bottom: 24px; letter-spacing: 2px; }
+        
+        /* 導覽列 */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; background: var(--panel-bg); color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; font-weight: bold; transition: 0.3s; }
+        .tab-btn.active { background: var(--accent); color: #1a1a1d; border-color: var(--accent); }
 
+        /* 面板區塊 */
+        .panel { background: var(--panel-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); display: none; }
+        .panel.active { display: block; }
+        h2 { font-size: 1.2rem; margin-bottom: 16px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+        /* 表單樣式 */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        label { display: block; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-muted); }
+        input, select { width: 100%; padding: 10px; background: #1e1e1e; border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; outline: none; }
+        input:focus { border-color: var(--accent); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        
+        button.action-btn { width: 100%; padding: 12px; background: var(--accent); color: #1a1a1d; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; }
+        button.action-btn:hover { opacity: 0.9; }
+
+        /* 客戶卡片 */
+        .customer-card { background: #1e1e1e; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-name { font-size: 1.2rem; font-weight: bold; color: var(--accent); }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .badge.alert { background: rgba(229, 57, 53, 0.2); color: var(--alert); border: 1px solid var(--alert); }
+        .badge.ok { background: rgba(67, 160, 71, 0.2); color: var(--success); border: 1px solid var(--success); }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.95rem; }
+        .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; }
+        .info-item strong { color: var(--text-main); }
+        
+        .fitting-box { background: rgba(212, 175, 55, 0.1); border: 1px dashed var(--accent); padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.9rem; }
+        
+        .card-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-small { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .btn-update { background: var(--success); color: white; }
+        .btn-delete { background: transparent; color: var(--alert); border: 1px solid var(--alert); }
+
+        /* 約騎區塊 */
+        .event-invite-box { background: #1e1e1e; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; border: 1px solid var(--border); }
+        .event-invite-box p { color: var(--text-muted); margin-bottom: 10px; }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>VeloPro 客戶關係管理</h1>
+
+    <div class="tabs">
+        <div class="tab-btn active" onclick="switchTab('list')">車友總覽</div>
+        <div class="tab-btn" onclick="switchTab('add')">新增建檔</div>
+        <div class="tab-btn" onclick="switchTab('events')">約騎名單</div>
+    </div>
+
+    <div id="tab-add" class="panel">
+        <h2>建立新車友檔案</h2>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>姓名 / 暱稱 *</label>
+                <input type="text" id="cName" placeholder="例如：張小明">
+            </div>
+            <div class="form-group">
+                <label>電話 *</label>
+                <input type="tel" id="cPhone" placeholder="0912-345-678">
+            </div>
+            <div class="form-group">
+                <label>LINE 顯示名稱</label>
+                <input type="text" id="cLine" placeholder="方便對照群組名稱">
+            </div>
+            <div class="form-group">
+                <label>購買車款 / 輪組</label>
+                <input type="text" id="cBike" placeholder="例如：Giant TCR Advanced Pro / CADEX 50">
+            </div>
+            <div class="form-group full-width">
+                <label>上次大保養日期 * (用於計算保養提醒)</label>
+                <input type="date" id="cMainDate">
+            </div>
+            
+            <div class="form-group full-width" style="margin-top: 10px;">
+                <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">⚙️ Fitting 數據紀錄</h3>
+            </div>
+            <div class="form-group">
+                <label>座高 Saddle Height (cm)</label>
+                <input type="number" id="fSaddle" step="0.1" placeholder="例如：72.5">
+            </div>
+            <div class="form-group">
+                <label>Reach (mm)</label>
+                <input type="number" id="fReach" placeholder="例如：385">
+            </div>
+            <div class="form-group">
+                <label>Stack (mm)</label>
+                <input type="number" id="fStack" placeholder="例如：545">
+            </div>
+            <div class="form-group">
+                <label>約騎意願</label>
+                <select id="cEventWilling">
+                    <option value="高">高 (常跟騎)</option>
+                    <option value="中">中 (看路線)</option>
+                    <option value="低">低 (偏好獨騎)</option>
+                </select>
+            </div>
+        </div>
+        <button class="action-btn" onclick="saveCustomer()">儲存客戶資料</button>
+    </div>
+
+    <div id="tab-list" class="panel active">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 style="margin: 0; border: none;">客戶名單與保養狀態</h2>
+            <button class="btn-small" style="background: var(--text-muted); color: #1a1a1d;" onclick="exportToExcel()">匯出 Excel</button>
+        </div>
+        <div id="customerList"></div>
+    </div>
+
+    <div id="tab-events" class="panel">
+        <h2>發起約騎活動</h2>
+        <div class="event-invite-box">
+            <input type="text" id="eventName" placeholder="例如：嘉義半天岩輕鬆騎、阿里山公路挑戰..." style="margin-bottom: 10px; font-size: 1.1rem; text-align: center;">
+            <p>系統將自動篩選「約騎意願：高與中」的車友名單，方便老闆複製群發 LINE 邀請。</p>
+            <button class="btn-small btn-update" style="padding: 10px 20px; font-size: 1rem;" onclick="generateInviteList()">產生邀請名單</button>
+        </div>
+        <div id="inviteResult" style="background: #111; padding: 15px; border-radius: 8px; min-height: 100px; white-space: pre-wrap; font-family: monospace; color: var(--accent);">
+            請輸入活動名稱並點擊產生...
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 資料庫初始化
+    let customers = JSON.parse(localStorage.getItem('veloCrmData')) || [];
+
+    window.onload = function() {
+        document.getElementById('cMainDate').value = new Date().toISOString().split('T')[0];
+        renderCustomers();
+    };
+
+    // 頁籤切換邏輯
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+
+        if(tabId === 'list') renderCustomers();
+    }
+
+    // 儲存客戶資料
+    function saveCustomer() {
+        const name = document.getElementById('cName').value.trim();
+        const phone = document.getElementById('cPhone').value.trim();
+        const mainDate = document.getElementById('cMainDate').value;
+
+        if (!name || !phone || !mainDate) {
+            alert('姓名、電話與保養日期為必填欄位！');
+            return;
+        }
+
+        const newCustomer = {
+            id: Date.now(),
+            name: name,
+            phone: phone,
+            line: document.getElementById('cLine').value.trim() || '未提供',
+            bike: document.getElementById('cBike').value.trim() || '未填寫',
+            lastMainDate: mainDate,
+            willing: document.getElementById('cEventWilling').value,
+            fitting: {
+                saddle: document.getElementById('fSaddle').value || 'N/A',
+                reach: document.getElementById('fReach').value || 'N/A',
+                stack: document.getElementById('fStack').value || 'N/A'
+            }
+        };
+
+        customers.push(newCustomer);
+        localStorage.setItem('veloCrmData', JSON.stringify(customers));
+        
+        alert('客戶建檔成功！');
+        
+        // 清空表單
+        document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"]').forEach(input => input.value = '');
+        switchTab('list');
+    }
+
+    // 刪除客戶
+    function deleteCustomer(id) {
+        if(confirm('確定要刪除這位車友的資料嗎？')) {
+            customers = customers.filter(c => c.id !== id);
+            localStorage.setItem('veloCrmData', JSON.stringify(customers));
+            renderCustomers();
+        }
+    }
+
+    // 更新保養日期為今天
+    function updateMaintenance(id) {
+        if(confirm('確認已完成保養？系統將把保養日期更新為今天。')) {
+            const index = customers.findIndex(c => c.id === id);
+            if(index !== -1) {
+                customers[index].lastMainDate = new Date().toISOString().split('T')[0];
+                localStorage.setItem('veloCrmData', JSON.stringify(customers));
+                renderCustomers();
+            }
+        }
+    }
+
+    // 渲染客戶列表與保養提醒計算
+    function renderCustomers() {
+        const listDiv = document.getElementById('customerList');
+        listDiv.innerHTML = '';
+
+        if(customers.length === 0) {
+            listDiv.innerHTML = '<p style="text-align:center; color:#9e9e9e;">目前尚無客戶資料，請至「新增建檔」建立。</p>';
+            return;
+        }
+
+        // 依據保養緊急程度排序 (越久沒保養的排越上面)
+        const sortedCustomers = [...customers].sort((a, b) => new Date(a.lastMainDate) - new Date(b.lastMainDate));
+
+        const today = new Date();
+
+        sortedCustomers.forEach(c => {
+            // 計算距離上次保養經過了幾天
+            const mainDate = new Date(c.lastMainDate);
+            const diffTime = Math.abs(today - mainDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            // 設定提醒邏輯：超過 180 天 (半年) 亮紅燈提醒
+            let badgeHtml = '';
+            if(diffDays > 180) {
+                badgeHtml = `<span class="badge alert">⚠️ 距上次保養已 ${diffDays} 天</span>`;
+            } else {
+                badgeHtml = `<span class="badge ok">✅ 狀況良好 (${diffDays} 天)</span>`;
+            }
+
+            listDiv.innerHTML += `
+                <div class="customer-card">
+                    <div class="card-header">
+                        <div class="card-name">${c.name} <span style="font-size:0.9rem; font-weight:normal; color:#9e9e9e;">(${c.line})</span></div>
+                        ${badgeHtml}
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item"><span>聯絡電話</span><strong>${c.phone}</strong></div>
+                        <div class="info-item"><span>車款 / 裝備</span><strong>${c.bike}</strong></div>
+                        <div class="info-item"><span>上次保養</span><strong>${c.lastMainDate}</strong></div>
+                        <div class="info-item"><span>約騎意願</span><strong>${c.willing}</strong></div>
+                    </div>
+
+                    <div class="fitting-box">
+                        <strong>📏 Fitting 數據：</strong> 
+                        座高 ${c.fitting.saddle}cm | Reach ${c.fitting.reach}mm | Stack ${c.fitting.stack}mm
+                    </div>
+
+                    <div class="card-actions">
+                        <button class="btn-small btn-update" onclick="updateMaintenance(${c.id})">更新為今日保養</button>
+                        <button class="btn-small btn-delete" onclick="deleteCustomer(${c.id})">刪除</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // 產生約騎名單
+    function generateInviteList() {
+        const eventName = document.getElementById('eventName').value.trim() || '週末約騎活動';
+        const resultDiv = document.getElementById('inviteResult');
+        
+        // 篩選意願為 高 或 中 的車友
+        const targetRiders = customers.filter(c => c.willing === '高' || c.willing === '中');
+        
+        if(targetRiders.length === 0) {
+            resultDiv.innerHTML = '目前沒有符合約騎意願的車友資料。';
+            return;
+        }
+
+        let text = `🚴‍♂️ 【${eventName}】邀請名單\n`;
+        text += `--------------------------\n`;
+        targetRiders.forEach(r => {
+            text += `[ ] ${r.name} (LINE: ${r.line}) - 騎乘: ${r.bike}\n`;
+        });
+        text += `--------------------------\n`;
+        text += `老闆，以上是本次建議發送 LINE 邀請的車友名單！`;
+
+        resultDiv.innerHTML = text;
+    }
+
+    // 匯出 Excel (CSV)
+    function exportToExcel() {
+        if(customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
+
+        let csvContent = "\ufeff"; // BOM
+        csvContent += "姓名,電話,LINE名稱,購買車款,上次保養日期,約騎意願,座高(cm),Reach(mm),Stack(mm)\n";
+
+        customers.forEach(c => {
+            const safeName = c.name.replace(/,/g, '，');
+            const safeBike = c.bike.replace(/,/g, '，');
+            csvContent += `${safeName},${c.phone},${c.line},${safeBike},${c.lastMainDate},${c.willing},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `VeloPro_客戶名單_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+</body>
+</html>
