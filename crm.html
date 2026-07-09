@@ -60,6 +60,9 @@
         .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 4px; }
         .info-item strong { color: var(--text-main); line-height: 1.5; display: block; }
         
+        /* 區隔線樣式 */
+        .section-divider { grid-column: 1 / -1; margin-top: 6px; border-top: 1px dashed #424242; padding-top: 6px; }
+        
         .fitting-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--accent); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
         
         .card-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
@@ -122,13 +125,24 @@
             </div>
             
             <div class="form-group full-width" style="margin-top: 10px;">
-                <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">📊 行銷紀錄</h3>
+                <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">🔧 維修保養紀錄</h3>
             </div>
-            <div class="form-group">
+            <div class="form-group full-width">
                 <label>上次大保養日期</label>
                 <input type="date" id="cMainDate">
             </div>
-            <div class="form-group">
+            <div class="form-group full-width">
+                <label>
+                    更換零件紀錄
+                    <button type="button" class="btn-date" onclick="insertToday('cPartsReplaced')">➕ 加入今日日期</button>
+                </label>
+                <textarea id="cPartsReplaced" rows="3" placeholder="點擊上方按鈕加入日期，紀錄每次更換的耗材..."></textarea>
+            </div>
+
+            <div class="form-group full-width" style="margin-top: 10px;">
+                <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">🎯 活動與行銷紀錄</h3>
+            </div>
+            <div class="form-group full-width">
                 <label>騎乘強度</label>
                 <select id="cRidingIntensity">
                     <option value="">請選擇...</option>
@@ -137,13 +151,12 @@
                     <option value="低">低</option>
                 </select>
             </div>
-
             <div class="form-group full-width">
                 <label>
-                    更換零件紀錄
-                    <button type="button" class="btn-date" onclick="insertToday('cPartsReplaced')">➕ 加入今日日期</button>
+                    邀約活動紀錄
+                    <button type="button" class="btn-date" onclick="insertToday('cEventRecords')">➕ 加入今日日期</button>
                 </label>
-                <textarea id="cPartsReplaced" rows="3" placeholder="點擊上方按鈕加入日期，紀錄每次更換的耗材..."></textarea>
+                <textarea id="cEventRecords" rows="3" placeholder="點擊上方按鈕加入日期，紀錄如：7/12阿里山邀約、車友回覆狀態..."></textarea>
             </div>
 
             <div class="form-group full-width" style="margin-top: 10px;">
@@ -254,6 +267,7 @@
         document.getElementById('cMainDate').value = (c.lastMainDate === '未填寫' || !c.lastMainDate) ? '' : c.lastMainDate;
         document.getElementById('cPartsReplaced').value = c.partsReplaced === '無' ? '' : (c.partsReplaced || '');
         document.getElementById('cRidingIntensity').value = c.intensity || c.willing || '';
+        document.getElementById('cEventRecords').value = c.eventRecords === '無' ? '' : (c.eventRecords || '');
         document.getElementById('cNotes').value = c.notes === '無' ? '' : c.notes;
         document.getElementById('fSaddle').value = c.fitting.saddle === 'N/A' ? '' : c.fitting.saddle;
         document.getElementById('fReach').value = c.fitting.reach === 'N/A' ? '' : c.fitting.reach;
@@ -286,6 +300,7 @@
             lastMainDate: mainDate || '未填寫', 
             partsReplaced: document.getElementById('cPartsReplaced').value.trim() || '無',
             intensity: document.getElementById('cRidingIntensity').value || '未選擇',
+            eventRecords: document.getElementById('cEventRecords').value.trim() || '無', // 新增
             notes: document.getElementById('cNotes').value.trim() || '無',
             fitting: {
                 saddle: document.getElementById('fSaddle').value || 'N/A',
@@ -361,6 +376,7 @@
             
             const cRelated = formatMultilineText(c.relatedSales);
             const cParts = formatMultilineText(c.partsReplaced);
+            const cEvents = formatMultilineText(c.eventRecords || '無'); // 新增
             const cNotes = formatMultilineText(c.notes);
             
             let badgeHtml = '';
@@ -395,11 +411,16 @@
                             <span>📦 關聯銷售紀錄</span><strong>${cRelated}</strong>
                         </div>
                         
-                        <div class="info-item" style="margin-top: 8px; border-top: 1px solid #424242; padding-top: 8px;"><span>上次保養</span><strong>${c.lastMainDate}</strong></div>
-                        <div class="info-item" style="margin-top: 8px; border-top: 1px solid #424242; padding-top: 8px;"><span>騎乘強度</span><strong>${cIntensity}</strong></div>
+                        <div class="info-item section-divider"><span>上次大保養</span><strong>${c.lastMainDate}</strong></div>
+                        <div class="info-item section-divider"><span>&nbsp;</span><strong>&nbsp;</strong></div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(67, 160, 71, 0.03); border-left: 3px solid var(--success); padding: 8px; border-radius: 0 6px 6px 0;">
+                            <span>🔧 零件更換歷史日誌</span><strong>${cParts}</strong>
+                        </div>
                         
-                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px;">
-                            <span>🔧 零件更換紀錄</span><strong>${cParts}</strong>
+                        <div class="info-item section-divider"><span>騎乘強度輪廓</span><strong>${cIntensity}</strong></div>
+                        <div class="info-item section-divider"><span>&nbsp;</span><strong>&nbsp;</strong></div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(212, 175, 55, 0.03); border-left: 3px solid var(--accent); padding: 8px; border-radius: 0 6px 6px 0;">
+                            <span>🚴‍♂️ 邀約活動追蹤紀錄</span><strong>${cEvents}</strong>
                         </div>
                     </div>
 
@@ -445,15 +466,12 @@
         resultDiv.innerHTML = text;
     }
 
-    // 升級版：完全相容 Excel 內建換行 (Alt+Enter) 機制的 CSV 安全編碼器
     function exportToExcel() {
         if(customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
 
         let csvContent = "\ufeff"; 
-        csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,客戶關聯銷售,上次保養日期,更換零件紀錄,騎乘強度,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
+        csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,客戶關聯銷售,上次保養日期,更換零件紀錄,騎乘強度,邀約活動紀錄,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
 
-        // 強大的安全轉換包裝器：將欄位用雙引號嚴格封裝，並將內部的單雙引號轉義
-        // 如此一來，文字內的 \n 換行符號在 Excel 中會直接被識別為「儲存格內換行」，而不會錯格
         const csvSafe = (text) => {
             if (!text || text === '無') return '"無"';
             return `"${text.replace(/"/g, '""')}"`;
@@ -465,6 +483,7 @@
             const bModel = c.bikeModel || c.bike || '未填寫'; 
             const cRelated = c.relatedSales || '無';
             const cParts = c.partsReplaced || '無';
+            const cEvents = c.eventRecords || '無'; // 新增
             const safeNotes = c.notes || '無';
             const cIntensity = c.intensity || c.willing || '未選擇';
             const lastMain = c.lastMainDate || '未填寫';
@@ -472,7 +491,7 @@
             const reach = c.fitting.reach || 'N/A';
             const stack = c.fitting.stack || 'N/A';
 
-            csvContent += `${csvSafe(safeName)},${csvSafe(c.phone)},${csvSafe(c.line)},${csvSafe(pDate)},${csvSafe(bModel)},${csvSafe(cRelated)},${csvSafe(lastMain)},${csvSafe(cParts)},${csvSafe(cIntensity)},${csvSafe(safeNotes)},${csvSafe(saddle)},${csvSafe(reach)},${csvSafe(stack)}\n`;
+            csvContent += `${csvSafe(safeName)},${csvSafe(c.phone)},${csvSafe(c.line)},${csvSafe(pDate)},${csvSafe(bModel)},${csvSafe(cRelated)},${csvSafe(lastMain)},${csvSafe(cParts)},${csvSafe(cIntensity)},${csvSafe(cEvents)},${csvSafe(safeNotes)},${csvSafe(saddle)},${csvSafe(reach)},${csvSafe(stack)}\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
