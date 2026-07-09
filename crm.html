@@ -60,9 +60,6 @@
         .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 4px; }
         .info-item strong { color: var(--text-main); line-height: 1.5; display: block; }
         
-        /* 區隔線樣式 */
-        .section-divider { grid-column: 1 / -1; margin-top: 6px; border-top: 1px dashed #424242; padding-top: 6px; }
-        
         .fitting-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--accent); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
         
         .card-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
@@ -434,14 +431,22 @@
                             <span>📦 關聯銷售紀錄</span><strong>${cRelated}</strong>
                         </div>
                         
-                        <div class="info-item section-divider"><span>上次大保養</span><strong>${c.lastMainDate}</strong></div>
-                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(67, 160, 71, 0.03); border-left: 3px solid var(--success); padding: 8px; border-radius: 0 6px 6px 0; margin-top: 4px;">
-                            <span>🔧 零件更換歷史日誌</span><strong>${cParts}</strong>
+                        <div class="info-item full-width" style="grid-column: 1 / -1; margin-top: 15px; border-top: 1px dashed #424242; padding-top: 12px;">
+                            <span>上次大保養</span>
+                            <strong>${c.lastMainDate}</strong>
+                        </div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(67, 160, 71, 0.05); border-left: 3px solid var(--success); padding: 10px; border-radius: 0 6px 6px 0; margin-top: 0;">
+                            <span style="color:var(--success); font-weight:bold; margin-bottom:4px;">🔧 零件更換歷史日誌</span>
+                            <strong>${cParts}</strong>
                         </div>
                         
-                        <div class="info-item section-divider" style="margin-top: 20px; padding-top: 12px;"><span>騎乘強度輪廓</span><strong>${cIntensity}</strong></div>
-                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(212, 175, 55, 0.03); border-left: 3px solid var(--accent); padding: 8px; border-radius: 0 6px 6px 0; margin-top: 4px;">
-                            <span>🚴‍♂️ 邀約活動追蹤紀錄</span><strong>${cEvents}</strong>
+                        <div class="info-item full-width" style="grid-column: 1 / -1; margin-top: 20px; border-top: 1px dashed #424242; padding-top: 12px;">
+                            <span>騎乘強度輪廓</span>
+                            <strong>${cIntensity}</strong>
+                        </div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(212, 175, 55, 0.05); border-left: 3px solid var(--accent); padding: 10px; border-radius: 0 6px 6px 0; margin-top: 0;">
+                            <span style="color:var(--accent); font-weight:bold; margin-bottom:4px;">🚴‍♂️ 邀約活動追蹤紀錄</span>
+                            <strong>${cEvents}</strong>
                         </div>
                     </div>
 
@@ -451,7 +456,7 @@
                             <span style="color: var(--text-main); line-height: 1.5; display: block;">${cNotes}</span>
                         </div>
                         <strong>📏 Fitting 數據：</strong> 
-                        座高 ${c.fitting ? c.fitting.saddle : 'N/A'}cm | Reach ${c.fitting ? c.fitting.reach : 'N/A'}mm | Stack ${c.fitting ? c.fitting.stack : 'N/A'}mm
+                        座高 ${c.fitting && c.fitting.saddle !== 'N/A' ? c.fitting.saddle : 'N/A'}cm | Reach ${c.fitting && c.fitting.reach !== 'N/A' ? c.fitting.reach : 'N/A'}mm | Stack ${c.fitting && c.fitting.stack !== 'N/A' ? c.fitting.stack : 'N/A'}mm
                     </div>
 
                     <div class="card-actions">
@@ -482,7 +487,7 @@
         targetRiders.sort((a, b) => new Date(a.lastMainDate) - new Date(b.lastMainDate));
 
         if(targetRiders.length === 0) {
-            resultDiv.innerHTML = '在此日期之前沒有需要提醒保養的車友。';
+            resultDiv.innerHTML = '太棒了！在此日期之前沒有需要提醒保養的車友。';
             return;
         }
 
