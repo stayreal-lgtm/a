@@ -72,10 +72,6 @@
         /* 約騎/通知區塊 */
         .event-invite-box { background: #1e1e1e; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; border: 1px solid var(--border); }
         .event-invite-box p { color: var(--text-muted); margin-bottom: 10px; }
-
-        @media (max-width: 600px) {
-            .form-grid { grid-template-columns: 1fr; }
-        }
     </style>
 </head>
 <body>
@@ -84,14 +80,12 @@
     <h1>嘉義店客戶管理</h1>
 
     <div class="tabs">
-        <!-- 移除所有不相容的 event 傳遞，改為乾淨安全的調用方式 -->
         <div class="tab-btn active" id="tabBtnList" onclick="switchTab('list')">車友總覽</div>
         <div class="tab-btn" id="tabBtnAdd" onclick="switchTab('add')">新增建檔</div>
         <div class="tab-btn" id="tabBtnMaintenance" onclick="switchTab('maintenance')">保養通知</div>
         <div class="tab-btn" id="tabBtnEvents" onclick="switchTab('events')">約騎名單</div>
     </div>
 
-    <!-- 1. 新增/修改 面板 -->
     <div id="tab-add" class="panel">
         <h2 id="formTitle">建立新車友檔案</h2>
         <div class="form-grid">
@@ -121,7 +115,7 @@
                     客戶關聯銷售 
                     <button type="button" class="btn-date" onclick="insertToday('cRelatedSales')">➕ 加入今日日期</button>
                 </label>
-                <textarea id="cRelatedSales" rows="3" placeholder="點擊上方按鈕加入日期，紀錄客人購買的其他配件..."></textarea>
+                <textarea id="cRelatedSales" rows="3" placeholder="紀錄客人購買的其他配件..."></textarea>
             </div>
             
             <div class="form-group full-width" style="margin-top: 10px;">
@@ -136,7 +130,7 @@
                     更換零件紀錄
                     <button type="button" class="btn-date" onclick="insertToday('cPartsReplaced')">➕ 加入今日日期</button>
                 </label>
-                <textarea id="cPartsReplaced" rows="3" placeholder="點擊上方按鈕加入日期，紀錄每次更換的耗材..."></textarea>
+                <textarea id="cPartsReplaced" rows="3" placeholder="紀錄每次更換的耗材..."></textarea>
             </div>
 
             <div class="form-group full-width" style="margin-top: 10px;">
@@ -156,7 +150,7 @@
                     邀約活動紀錄
                     <button type="button" class="btn-date" onclick="insertToday('cEventRecords')">➕ 加入今日日期</button>
                 </label>
-                <textarea id="cEventRecords" rows="3" placeholder="點擊上方按鈕加入日期，紀錄如：7/12阿里山邀約、車友回覆狀態..."></textarea>
+                <textarea id="cEventRecords" rows="3" placeholder="紀錄如：邀約約騎、車友回覆狀態..."></textarea>
             </div>
 
             <div class="form-group full-width" style="margin-top: 10px;">
@@ -189,12 +183,10 @@
         <button id="saveBtn" class="action-btn" onclick="saveCustomer()">儲存客戶資料</button>
     </div>
 
-    <!-- 2. 車友總覽面板 -->
     <div id="tab-list" class="panel active">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h2 style="margin: 0; border: none;">客戶名單</h2>
             <div style="display: flex; gap: 8px;">
-                <!-- 修正：使用更安全的 this 傳遞，確保匯入功能在所有設備都能觸發 -->
                 <input type="file" id="importCsvFile" accept=".csv" style="display: none;" onchange="handleImportCSV(this)">
                 <button class="btn-small btn-edit" onclick="document.getElementById('importCsvFile').click()">匯入 CSV</button>
                 <button class="btn-small" style="background: var(--text-muted); color: #1a1a1d;" onclick="exportToExcel()">匯出 Excel</button>
@@ -203,39 +195,45 @@
         <div id="customerList"></div>
     </div>
 
-    <!-- 3. 保養通知名單 -->
     <div id="tab-maintenance" class="panel">
         <h2>保養通知名單</h2>
         <div class="event-invite-box">
-            <label style="display: block; text-align: left; color: var(--text-muted); margin-bottom: 5px;">
-                選擇基準日 (預設為半年前)
-            </label>
+            <label style="display: block; text-align: left; color: var(--text-muted); margin-bottom: 5px;">選擇基準日</label>
             <input type="date" id="maintCutoffDate" style="margin-bottom: 10px; font-size: 1.1rem; width: 100%;">
-            <p>系統將撈出「上次大保養日期」在此日期(含)之前的車友，方便老闆複製名單並傳送 LINE 關心通知。</p>
             <button class="btn-small btn-update" style="padding: 10px 20px; font-size: 1rem;" onclick="generateMaintList()">撈出保養名單</button>
         </div>
-        <div id="maintResult" style="background: #111; padding: 15px; border-radius: 8px; min-height: 100px; white-space: pre-wrap; font-family: monospace; color: #4ade80;">
-            請點擊上方按鈕產生名單...
-        </div>
+        <div id="maintResult" style="background: #111; padding: 15px; border-radius: 8px; min-height: 100px; white-space: pre-wrap; font-family: monospace; color: #4ade80;">請點擊上方按鈕產生名單...</div>
     </div>
 
-    <!-- 4. 約騎活動面板 -->
     <div id="tab-events" class="panel">
         <h2>發起約騎活動</h2>
         <div class="event-invite-box">
-            <input type="text" id="eventName" placeholder="例如：嘉義半天岩輕鬆騎、阿里山公路挑戰..." style="margin-bottom: 10px; font-size: 1.1rem; text-align: center;">
-            <p>系統將自動篩選「騎乘強度：高與中」的車友名單，方便老闆複製群發 LINE 邀請。</p>
+            <input type="text" id="eventName" placeholder="例如：嘉義半天岩輕鬆騎..." style="margin-bottom: 10px; font-size: 1.1rem; text-align: center;">
             <button class="btn-small btn-update" style="padding: 10px 20px; font-size: 1rem;" onclick="generateInviteList()">產生邀請名單</button>
         </div>
-        <div id="inviteResult" style="background: #111; padding: 15px; border-radius: 8px; min-height: 100px; white-space: pre-wrap; font-family: monospace; color: var(--accent);">
-            請輸入活動名稱並點擊產生...
-        </div>
+        <div id="inviteResult" style="background: #111; padding: 15px; border-radius: 8px; min-height: 100px; white-space: pre-wrap; font-family: monospace; color: var(--accent);">請輸入活動名稱並點擊產生...</div>
     </div>
 
+    <div style="text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px dashed #333;">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">如果網頁按鈕依然卡死，可能是瀏覽器留有舊版的損壞快取資料：</p>
+        <button onclick="clearSystemCache()" style="background: none; border: 1px solid var(--alert); color: var(--alert); padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer;">⚠️ 點我清除本機毀損快取並重設</button>
+    </div>
 </div>
 
 <script>
-    let customers = JSON.parse(localStorage.getItem('veloCrmData')) || [];
+    // 盾牌防禦機制：確保 JSON 解析失敗時網頁絕對不崩潰
+    let customers = [];
+    try {
+        const localData = localStorage.getItem('veloCrmData');
+        if (localData) {
+            customers = JSON.parse(localData);
+            if (!Array.isArray(customers)) customers = [];
+        }
+    } catch (e) {
+        console.error("讀取本地舊資料失敗，已自動重設防崩潰", e);
+        customers = [];
+    }
+
     let editingCustomerId = null; 
 
     window.onload = function() {
@@ -246,6 +244,14 @@
         
         renderCustomers();
     };
+
+    function clearSystemCache() {
+        if (confirm('確定要清空本機的所有測試資料以修復卡死問題嗎？（重要資料請先確認有備份）')) {
+            localStorage.removeItem('veloCrmData');
+            alert('快取已清除！網頁即將自動重新整理。');
+            window.location.reload();
+        }
+    }
 
     function insertToday(elementId) {
         const el = document.getElementById(elementId);
@@ -266,7 +272,6 @@
         editingCustomerId = null;
     }
 
-    // 移除不相容的 event 對象，加入內部 isEdit 狀態標籤
     function switchTab(tabId, isEdit = false) {
         if (tabId === 'add' && !isEdit) {
             resetForm();
@@ -307,7 +312,6 @@
         document.getElementById('formTitle').innerText = '✏️ 修改車友檔案';
         document.getElementById('saveBtn').innerText = '更新客戶資料';
 
-        // 告訴 switchTab 這是「編輯模式」，不要清空表單
         switchTab('add', true); 
     }
 
@@ -392,21 +396,17 @@
             return;
         }
 
-        // 核心修正：移除會導致 Apple/Safari 設備崩潰當機的 collation: 'stroke' 參數
-        // 改用最基礎安全的 localeCompare 進行中文字排序
+        // 100% 安全的中文字典排序（絕不因特殊核心崩潰）
         const sortedCustomers = [...customers].sort((a, b) => {
             const nameA = a.name || '';
             const nameB = b.name || '';
-            try {
-                return nameA.localeCompare(nameB, 'zh-TW');
-            } catch (e) {
-                return nameA > nameB ? 1 : -1; // 最終防禦：就算出錯也能安全排序
-            }
+            return nameA.localeCompare(nameB, 'zh-TW');
         });
 
         const today = new Date();
 
         sortedCustomers.forEach(c => {
+            if(!c) return;
             const pDate = c.purchaseDate || '未填寫';
             const bModel = c.bikeModel || c.bike || '未填寫'; 
             const cIntensity = c.intensity || c.willing || '未選擇';
@@ -448,24 +448,18 @@
                             <span>📦 關聯銷售紀錄</span><strong>${cRelated}</strong>
                         </div>
                         
-                        <!-- 專業維修保養 -->
                         <div class="info-item full-width" style="grid-column: 1 / -1; margin-top: 15px; border-top: 1px dashed #424242; padding-top: 12px;">
-                            <span>上次大保養</span>
-                            <strong>${c.lastMainDate}</strong>
+                            <span>上次大保養</span><strong>${c.lastMainDate}</strong>
                         </div>
                         <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(67, 160, 71, 0.05); border-left: 3px solid var(--success); padding: 10px; border-radius: 0 6px 6px 0; margin-top: 0;">
-                            <span style="color:var(--success); font-weight:bold; margin-bottom:4px;">🔧 零件更換歷史日誌</span>
-                            <strong>${cParts}</strong>
+                            <span style="color:var(--success); font-weight:bold; margin-bottom:4px;">🔧 零件更換歷史日誌</span><strong>${cParts}</strong>
                         </div>
                         
-                        <!-- 活動群聚行銷 -->
                         <div class="info-item full-width" style="grid-column: 1 / -1; margin-top: 20px; border-top: 1px dashed #424242; padding-top: 12px;">
-                            <span>騎乘強度輪廓</span>
-                            <strong>${cIntensity}</strong>
+                            <span>騎乘強度輪廓</span><strong>${cIntensity}</strong>
                         </div>
                         <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(212, 175, 55, 0.05); border-left: 3px solid var(--accent); padding: 10px; border-radius: 0 6px 6px 0; margin-top: 0;">
-                            <span style="color:var(--accent); font-weight:bold; margin-bottom:4px;">🚴‍♂️ 邀約活動追蹤紀錄</span>
-                            <strong>${cEvents}</strong>
+                            <span style="color:var(--accent); font-weight:bold; margin-bottom:4px;">🚴‍♂️ 邀約活動追蹤紀錄</span><strong>${cEvents}</strong>
                         </div>
                     </div>
 
@@ -492,11 +486,7 @@
         const cutoffDate = document.getElementById('maintCutoffDate').value;
         const resultDiv = document.getElementById('maintResult');
         if (!resultDiv) return;
-        
-        if (!cutoffDate) {
-            alert('請先選擇基準日期！');
-            return;
-        }
+        if (!cutoffDate) { alert('請先選擇基準日期！'); return; }
 
         const targetRiders = customers.filter(c => {
             if (c.lastMainDate === '未填寫' || !c.lastMainDate) return false;
@@ -504,22 +494,14 @@
         });
 
         targetRiders.sort((a, b) => new Date(a.lastMainDate) - new Date(b.lastMainDate));
+        if(targetRiders.length === 0) { resultDiv.innerHTML = '在此日期之前沒有需要提醒保養的車友。'; return; }
 
-        if(targetRiders.length === 0) {
-            resultDiv.innerHTML = '太棒了！在此日期之前沒有需要提醒保養的車友。';
-            return;
-        }
-
-        let text = `🔧 【定期保養提醒名單】\n`;
-        text += `基準日期：${cutoffDate} 以前\n`;
-        text += `--------------------------\n`;
+        let text = `🔧 【定期保養提醒名單】\n基準日期：${cutoffDate} 以前\n--------------------------\n`;
         targetRiders.forEach(r => {
             const bModel = r.bikeModel || r.bike || '未填寫';
             text += `[ ] ${r.name || '無名氏'} (LINE: ${r.line || '無'})\n    上次保養: ${r.lastMainDate} | 車款: ${bModel}\n\n`;
         });
-        text += `--------------------------\n`;
-        text += `老闆，以上是建議發送保養提醒的車友，趕快複製起來貼到 LINE 關心他們吧！`;
-
+        text += `--------------------------\n建議複製以上車友，至 LINE 發送保養提醒。`;
         resultDiv.innerHTML = text;
     }
 
@@ -529,78 +511,61 @@
         if (!resultDiv) return;
         
         const targetRiders = customers.filter(c => (c.intensity || c.willing) === '高' || (c.intensity || c.willing) === '中');
-        
-        if(targetRiders.length === 0) {
-            resultDiv.innerHTML = '目前沒有符合「強度：高/中」的車友資料。';
-            return;
-        }
+        if(targetRiders.length === 0) { resultDiv.innerHTML = '目前沒有符合「強度：高/中」的車友。'; return; }
 
-        let text = `🚴‍♂️ 【${eventName}】邀請名單\n`;
-        text += `--------------------------\n`;
+        let text = `🚴‍♂️ 【${eventName}】邀請名單\n--------------------------\n`;
         targetRiders.forEach(r => {
             const bModel = r.bikeModel || r.bike || '未填寫';
             text += `[ ] ${r.name || '無名氏'} (LINE: ${r.line || '無'}) - 車款: ${bModel}\n`;
         });
-        text += `--------------------------\n`;
-        text += `老闆，以上是本次建議發送 LINE 邀請的車友名單！`;
-
+        text += `--------------------------\n名單產生完畢！`;
         resultDiv.innerHTML = text;
     }
 
-    // --- CSV 匯入與解析防呆強化版 ---
     function handleImportCSV(inputElement) {
         const file = inputElement.files[0];
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            const text = e.target.result;
-            processCSVData(text);
-            inputElement.value = ''; // 允許重新上傳同檔名的 CSV
+            processCSVData(e.target.result);
+            inputElement.value = ''; 
         };
         reader.readAsText(file, 'utf-8');
     }
 
     function processCSVData(csvText) {
-        if (csvText.charCodeAt(0) === 0xFEFF) {
-            csvText = csvText.substring(1);
-        }
-
+        if (csvText.charCodeAt(0) === 0xFEFF) csvText = csvText.substring(1);
         const data = CSVToArray(csvText, ",");
-        if (data.length < 2) {
-            alert('檔案無有效資料或格式不符！');
-            return;
-        }
+        if (data.length < 2) { alert('檔案無有效資料！'); return; }
 
-        let importCount = 0;
-        let updateCount = 0;
+        let importCount = 0, updateCount = 0;
 
         for (let i = 1; i < data.length; i++) {
             const row = data[i];
-            // 確保行有足夠欄位且姓名不為空
-            if (row.length < 13 || !row[0]) continue; 
+            if (row.length < 11 || !row[0]) continue; 
 
-            const name = (row[0] === '無' || row[0] === '無名氏') ? '' : row[0];
-            const phone = row[1] === '無' ? '' : row[1];
-            if (!name || !phone) continue; 
+            const name = (row[0] === '無' || row[0] === '無名氏') ? '' : row[0].trim();
+            const phone = row[1] === '無' ? '' : row[1].trim();
+            if (!name) continue; 
 
             const customerData = {
                 id: Date.now() + i,
                 name: name,
                 phone: phone,
-                line: (row[2] && row[2] !== '無') ? row[2] : '未提供',
-                purchaseDate: (row[3] && row[3] !== '未填寫') ? row[3] : '未填寫',
-                bikeModel: (row[4] && row[4] !== '未填寫') ? row[4] : '未填寫',
-                relatedSales: (row[5] && row[5] !== '無') ? row[5] : '無',
-                lastMainDate: (row[6] && row[6] !== '未填寫') ? row[6] : '未填寫',
-                partsReplaced: (row[7] && row[7] !== '無') ? row[7] : '無',
-                intensity: (row[8] && row[8] !== '未選擇') ? row[8] : '未選擇',
-                eventRecords: (row[9] && row[9] !== '無') ? row[9] : '無',
-                notes: (row[10] && row[10] !== '無') ? row[10] : '無',
+                line: row[2] || '未提供',
+                purchaseDate: row[3] || '未填寫',
+                bikeModel: row[4] || '未填寫',
+                relatedSales: row[5] || '無',
+                lastMainDate: row[6] || '未填寫',
+                partsReplaced: row[7] || '無',
+                intensity: row[8] || '未選擇',
+                eventRecords: row[9] || '無',
+                notes: row[10] || '無',
                 fitting: {
-                    saddle: (row[11] && row[11] !== 'N/A') ? row[11] : 'N/A',
-                    reach: (row[12] && row[12] !== 'N/A') ? row[12] : 'N/A',
-                    stack: (row[13] && row[13] !== 'N/A') ? row[13] : 'N/A'
+                    saddle: row[11] || 'N/A',
+                    reach: row[12] || 'N/A',
+                    stack: row[13] || 'N/A'
                 }
             };
 
@@ -617,16 +582,16 @@
 
         localStorage.setItem('veloCrmData', JSON.stringify(customers));
         renderCustomers();
-        alert(`匯入完成！\n新增了 ${importCount} 位新車友\n更新了 ${updateCount} 位舊車友資料`);
+        alert(`匯入完成！\n新增：${importCount} 位 | 更新：${updateCount} 位`);
     }
 
+    // 安全防無窮迴圈的 CSV 陣列解析器
     function CSVToArray(strData, strDelimiter){
         strDelimiter = (strDelimiter || ",");
         const objPattern = new RegExp(
             ("(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
             "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
-            "([^\"\\" + strDelimiter + "\\r\\n]*))"),
-            "gi"
+            "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi"
         );
         const arrData = [[]];
         let arrMatches = null;
@@ -635,54 +600,32 @@
             if (strMatchedDelimiter.length && strMatchedDelimiter !== strDelimiter){
                 arrData.push( [] );
             }
-            let strMatchedValue;
-            if (arrMatches[ 2 ]){
-                strMatchedValue = arrMatches[ 2 ].replace(new RegExp( "\"\"", "g" ), "\"");
-            } else {
-                strMatchedValue = arrMatches[ 3 ];
-            }
+            let strMatchedValue = arrMatches[ 2 ] ? arrMatches[ 2 ].replace(new RegExp( "\"\"", "g" ), "\"") : arrMatches[ 3 ];
             arrData[ arrData.length - 1 ].push( strMatchedValue );
+            
+            // 安全防線：如果匹配長度為0，手動推進索引，防止特定瀏覽器無窮迴圈卡死
+            if (objPattern.lastIndex === arrMatches.index) {
+                objPattern.lastIndex++;
+            }
         }
         return arrData;
     }
 
     function exportToExcel() {
         if(!customers || customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
-
-        let csvContent = "\ufeff"; 
-        csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,客戶關聯銷售,上次保養日期,更換零件紀錄,騎乘強度,邀約活動紀錄,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
-
-        const csvSafe = (text) => {
-            if (!text || text === '無') return '"無"';
-            return `"${text.replace(/"/g, '""')}"`;
-        };
+        let csvContent = "\ufeff姓名,電話,LINE名稱,買車日期,騎乘車款,客戶關聯銷售,上次保養日期,更換零件紀錄,騎乘強度,邀約活動紀錄,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
+        const csvSafe = (t) => { if (!t || t === '無') return '"無"'; return `"${t.replace(/"/g, '""')}"`; };
 
         customers.forEach(c => {
-            const safeName = c.name || '無名氏';
-            const pDate = c.purchaseDate || '未填寫';
-            const bModel = c.bikeModel || c.bike || '未填寫'; 
-            const cRelated = c.relatedSales || '無';
-            const cParts = c.partsReplaced || '無';
-            const cEvents = c.eventRecords || '無'; 
-            const safeNotes = c.notes || '無';
-            const cIntensity = c.intensity || c.willing || '未選擇';
-            const lastMain = c.lastMainDate || '未填寫';
-            const saddle = (c.fitting && c.fitting.saddle) ? c.fitting.saddle : 'N/A';
-            const reach = (c.fitting && c.fitting.reach) ? c.fitting.reach : 'N/A';
-            const stack = (c.fitting && c.fitting.stack) ? c.fitting.stack : 'N/A';
-
-            csvContent += `${csvSafe(safeName)},${csvSafe(c.phone)},${csvSafe(c.line)},${csvSafe(pDate)},${csvSafe(bModel)},${csvSafe(cRelated)},${csvSafe(lastMain)},${csvSafe(cParts)},${csvSafe(cIntensity)},${csvSafe(cEvents)},${csvSafe(safeNotes)},${csvSafe(saddle)},${csvSafe(reach)},${csvSafe(stack)}\n`;
+            const fit = c.fitting || {};
+            csvContent += `${csvSafe(c.name)},${csvSafe(c.phone)},${csvSafe(c.line)},${csvSafe(c.purchaseDate)},${csvSafe(c.bikeModel)},${csvSafe(c.relatedSales)},${csvSafe(c.lastMainDate)},${csvSafe(c.partsReplaced)},${csvSafe(c.intensity)},${csvSafe(c.eventRecords)},${csvSafe(c.notes)},${csvSafe(fit.saddle)},${csvSafe(fit.reach)},${csvSafe(fit.stack)}\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `嘉義店_客戶名單_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = `嘉義店_客戶名單_${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
-        document.body.removeChild(link);
     }
 </script>
 </body>
