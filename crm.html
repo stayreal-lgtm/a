@@ -233,7 +233,6 @@
     let editingCustomerId = null; 
 
     window.onload = function() {
-        // 設定保養通知基準日（預設為 180 天前）
         const halfYearAgo = new Date();
         halfYearAgo.setDate(halfYearAgo.getDate() - 180);
         const cutoffEl = document.getElementById('maintCutoffDate');
@@ -261,9 +260,7 @@
         editingCustomerId = null;
     }
 
-    // 修正：顯式接收事件對象 `e`，不再依賴不穩定的全域變數 `event`
     function switchTab(tabId, e) {
-        // 安全檢查是否由手動點擊「新增建檔」頁籤觸發，若是，則重設表單
         if (tabId === 'add' && e && e.target && e.target.id === 'tabBtnAdd') {
             resetForm();
         }
@@ -303,7 +300,7 @@
         document.getElementById('formTitle').innerText = '✏️ 修改車友檔案';
         document.getElementById('saveBtn').innerText = '更新客戶資料';
 
-        switchTab('add', null); // 程式碼切換不帶入事件，避免觸發表單重設
+        switchTab('add', null); 
     }
 
     function saveCustomer() {
@@ -387,7 +384,6 @@
             return;
         }
 
-        // 防禦性修正：防止 legacy 髒資料的 name 欄位為空導致排序報錯死機
         const sortedCustomers = [...customers].sort((a, b) => {
             const nameA = a.name || '';
             const nameB = b.name || '';
@@ -439,14 +435,12 @@
                         </div>
                         
                         <div class="info-item section-divider"><span>上次大保養</span><strong>${c.lastMainDate}</strong></div>
-                        <div class="info-item section-divider"><span>&nbsp;</span><strong>&nbsp;</strong></div>
-                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(67, 160, 71, 0.03); border-left: 3px solid var(--success); padding: 8px; border-radius: 0 6px 6px 0;">
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(67, 160, 71, 0.03); border-left: 3px solid var(--success); padding: 8px; border-radius: 0 6px 6px 0; margin-top: 4px;">
                             <span>🔧 零件更換歷史日誌</span><strong>${cParts}</strong>
                         </div>
                         
-                        <div class="info-item section-divider"><span>騎乘強度輪廓</span><strong>${cIntensity}</strong></div>
-                        <div class="info-item section-divider"><span>&nbsp;</span><strong>&nbsp;</strong></div>
-                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(212, 175, 55, 0.03); border-left: 3px solid var(--accent); padding: 8px; border-radius: 0 6px 6px 0;">
+                        <div class="info-item section-divider" style="margin-top: 20px; padding-top: 12px;"><span>騎乘強度輪廓</span><strong>${cIntensity}</strong></div>
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(212, 175, 55, 0.03); border-left: 3px solid var(--accent); padding: 8px; border-radius: 0 6px 6px 0; margin-top: 4px;">
                             <span>🚴‍♂️ 邀約活動追蹤紀錄</span><strong>${cEvents}</strong>
                         </div>
                     </div>
