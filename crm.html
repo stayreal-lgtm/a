@@ -34,14 +34,18 @@
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group { margin-bottom: 12px; }
         .form-group.full-width { grid-column: 1 / -1; }
-        label { display: block; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-muted); }
+        label { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-muted); }
         input, select, textarea { width: 100%; padding: 10px; background: #1e1e1e; border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; outline: none; }
-        textarea { resize: vertical; }
+        textarea { resize: vertical; line-height: 1.5; }
         input:focus, select:focus, textarea:focus { border-color: var(--accent); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
         button.action-btn { width: 100%; padding: 12px; background: var(--accent); color: #1a1a1d; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; transition: 0.2s; }
         button.action-btn:hover { opacity: 0.9; }
+
+        /* 日期快速按鈕 */
+        .btn-date { background: #333; color: var(--accent); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
+        .btn-date:hover { background: #444; border-color: var(--accent); }
 
         /* 客戶卡片 */
         .customer-card { background: #1e1e1e; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
@@ -53,8 +57,8 @@
         .badge.none { background: rgba(158, 158, 158, 0.1); color: var(--text-muted); border: 1px solid var(--border); }
         
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.95rem; }
-        .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 2px; }
-        .info-item strong { color: var(--text-main); }
+        .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 4px; }
+        .info-item strong { color: var(--text-main); line-height: 1.5; display: block; }
         
         .fitting-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--accent); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
         
@@ -108,9 +112,13 @@
                 <label>騎乘車款</label>
                 <input type="text" id="cBikeModel" placeholder="例如：Giant TCR Advanced Pro / CADEX 50">
             </div>
+            
             <div class="form-group full-width">
-                <label>客戶關聯銷售</label>
-                <input type="text" id="cRelatedSales" placeholder="例如：安全帽、車衣、碼表、卡鞋...">
+                <label>
+                    客戶關聯銷售 
+                    <button type="button" class="btn-date" onclick="insertToday('cRelatedSales')">➕ 加入今日日期</button>
+                </label>
+                <textarea id="cRelatedSales" rows="3" placeholder="點擊上方按鈕加入日期，紀錄客人購買的其他配件..."></textarea>
             </div>
             
             <div class="form-group full-width" style="margin-top: 10px;">
@@ -129,9 +137,13 @@
                     <option value="低">低</option>
                 </select>
             </div>
+
             <div class="form-group full-width">
-                <label>更換零件紀錄</label>
-                <input type="text" id="cPartsReplaced" placeholder="例如：更換煞車皮、把帶、外胎...">
+                <label>
+                    更換零件紀錄
+                    <button type="button" class="btn-date" onclick="insertToday('cPartsReplaced')">➕ 加入今日日期</button>
+                </label>
+                <textarea id="cPartsReplaced" rows="3" placeholder="點擊上方按鈕加入日期，紀錄每次更換的耗材..."></textarea>
             </div>
 
             <div class="form-group full-width" style="margin-top: 10px;">
@@ -154,8 +166,11 @@
                 <h3 style="font-size: 1rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px;">📝 其他資訊</h3>
             </div>
             <div class="form-group full-width">
-                <label>特別備註</label>
-                <textarea id="cNotes" rows="3" placeholder="例如：客人想升級電子變速、偏好的把帶顏色、有提過想買功率計..."></textarea>
+                <label>
+                    特別備註
+                    <button type="button" class="btn-date" onclick="insertToday('cNotes')">➕ 加入今日日期</button>
+                </label>
+                <textarea id="cNotes" rows="3" placeholder="紀錄客人的特殊需求或報價追蹤..."></textarea>
             </div>
 
         </div>
@@ -191,6 +206,16 @@
     window.onload = function() {
         renderCustomers();
     };
+
+    // 快捷加入今日日期功能
+    function insertToday(elementId) {
+        const el = document.getElementById(elementId);
+        const today = new Date().toISOString().split('T')[0];
+        // 判斷如果裡面已經有字，就換行再插入
+        const prefix = el.value.trim() === '' ? '' : '\n';
+        el.value += `${prefix}[${today}] `;
+        el.focus();
+    }
 
     // 清空表單並恢復為「新增模式」
     function resetForm() {
@@ -314,6 +339,12 @@
         }
     }
 
+    // 將換行符號轉為 HTML 的 <br> 讓卡片可以正常顯示堆疊紀錄
+    function formatMultilineText(text) {
+        if (!text || text === '無') return '無';
+        return text.replace(/\n/g, '<br>');
+    }
+
     // 渲染客戶列表與保養提醒計算
     function renderCustomers() {
         const listDiv = document.getElementById('customerList');
@@ -324,7 +355,6 @@
             return;
         }
 
-        // 排序邏輯：有保養日期的按時間久遠排上面，"未填寫"的排最下面
         const sortedCustomers = [...customers].sort((a, b) => {
             if (a.lastMainDate === '未填寫' && b.lastMainDate === '未填寫') return 0;
             if (a.lastMainDate === '未填寫') return 1;
@@ -335,17 +365,17 @@
         const today = new Date();
 
         sortedCustomers.forEach(c => {
-            // 防呆處理與向下相容
             const pDate = c.purchaseDate || '未填寫';
             const bModel = c.bikeModel || c.bike || '未填寫'; 
-            const cRelated = c.relatedSales || '無';
-            const cParts = c.partsReplaced || '無';
             const cIntensity = c.intensity || c.willing || '未選擇';
-            const cNotes = c.notes || '無';
+            
+            // 使用轉換函數處理多行文字
+            const cRelated = formatMultilineText(c.relatedSales);
+            const cParts = formatMultilineText(c.partsReplaced);
+            const cNotes = formatMultilineText(c.notes);
             
             let badgeHtml = '';
 
-            // 狀態標籤
             if (c.lastMainDate === '未填寫' || !c.lastMainDate) {
                 badgeHtml = `<span class="badge none">無保養紀錄</span>`;
             } else {
@@ -371,16 +401,23 @@
                         <div class="info-item"><span>聯絡電話</span><strong>${c.phone}</strong></div>
                         <div class="info-item"><span>買車日期</span><strong>${pDate}</strong></div>
                         <div class="info-item full-width" style="grid-column: 1 / -1;"><span>騎乘車款</span><strong>${bModel}</strong></div>
-                        <div class="info-item full-width" style="grid-column: 1 / -1;"><span>關聯銷售</span><strong>${cRelated}</strong></div>
+                        
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px;">
+                            <span>📦 關聯銷售紀錄</span><strong>${cRelated}</strong>
+                        </div>
                         
                         <div class="info-item" style="margin-top: 8px; border-top: 1px solid #424242; padding-top: 8px;"><span>上次保養</span><strong>${c.lastMainDate}</strong></div>
                         <div class="info-item" style="margin-top: 8px; border-top: 1px solid #424242; padding-top: 8px;"><span>騎乘強度</span><strong>${cIntensity}</strong></div>
-                        <div class="info-item full-width" style="grid-column: 1 / -1;"><span>零件更換紀錄</span><strong>${cParts}</strong></div>
+                        
+                        <div class="info-item full-width" style="grid-column: 1 / -1; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px;">
+                            <span>🔧 零件更換紀錄</span><strong>${cParts}</strong>
+                        </div>
                     </div>
 
                     <div class="fitting-box">
                         <div style="margin-bottom: 8px; border-bottom: 1px dotted var(--border); padding-bottom: 8px;">
-                            <strong>📝 特別備註：</strong> <span style="color: var(--text-main);">${cNotes}</span>
+                            <span style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 4px;">📝 特別備註</span>
+                            <span style="color: var(--text-main); line-height: 1.5; display: block;">${cNotes}</span>
                         </div>
                         <strong>📏 Fitting 數據：</strong> 
                         座高 ${c.fitting.saddle}cm | Reach ${c.fitting.reach}mm | Stack ${c.fitting.stack}mm
@@ -401,7 +438,6 @@
         const eventName = document.getElementById('eventName').value.trim() || '週末約騎活動';
         const resultDiv = document.getElementById('inviteResult');
         
-        // 修改為篩選「騎乘強度」
         const targetRiders = customers.filter(c => (c.intensity || c.willing) === '高' || (c.intensity || c.willing) === '中');
         
         if(targetRiders.length === 0) {
@@ -432,10 +468,13 @@
             const safeName = c.name.replace(/,/g, '，');
             const pDate = c.purchaseDate || '未填寫';
             const bModel = (c.bikeModel || c.bike || '未填寫').replace(/,/g, '，');
-            const cRelated = (c.relatedSales || '無').replace(/,/g, '，');
-            const cParts = (c.partsReplaced || '無').replace(/,/g, '，');
+            
+            // 匯出到 Excel 時，把換行轉成 " | " 分隔符號，確保不會破壞 CSV 結構
+            const cRelated = (c.relatedSales || '無').replace(/,/g, '，').replace(/\n/g, ' | ');
+            const cParts = (c.partsReplaced || '無').replace(/,/g, '，').replace(/\n/g, ' | ');
+            const safeNotes = (c.notes || '無').replace(/,/g, '，').replace(/\n/g, ' | '); 
+            
             const cIntensity = c.intensity || c.willing || '未選擇';
-            const safeNotes = (c.notes || '無').replace(/,/g, '，').replace(/\n/g, ' '); 
 
             csvContent += `${safeName},${c.phone},${c.line},${pDate},${bModel},${cRelated},${c.lastMainDate},${cParts},${cIntensity},${safeNotes},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
         });
