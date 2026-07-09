@@ -207,17 +207,14 @@
         renderCustomers();
     };
 
-    // 快捷加入今日日期功能
     function insertToday(elementId) {
         const el = document.getElementById(elementId);
         const today = new Date().toISOString().split('T')[0];
-        // 判斷如果裡面已經有字，就換行再插入
         const prefix = el.value.trim() === '' ? '' : '\n';
         el.value += `${prefix}[${today}] `;
         el.focus();
     }
 
-    // 清空表單並恢復為「新增模式」
     function resetForm() {
         document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"], input[type="date"], textarea').forEach(input => input.value = '');
         document.getElementById('cRidingIntensity').value = '';
@@ -227,7 +224,6 @@
         editingCustomerId = null;
     }
 
-    // 頁籤切換邏輯
     function switchTab(tabId) {
         if (tabId === 'add' && event && event.target.id === 'tabBtnAdd') {
             resetForm();
@@ -245,7 +241,6 @@
         if(tabId === 'list') renderCustomers();
     }
 
-    // 進入修改模式，將資料帶入表單
     function editCustomer(id) {
         const c = customers.find(cust => cust.id === id);
         if(!c) return;
@@ -271,7 +266,6 @@
         switchTab('add'); 
     }
 
-    // 儲存/更新客戶資料
     function saveCustomer() {
         const name = document.getElementById('cName').value.trim();
         const phone = document.getElementById('cPhone').value.trim();
@@ -318,7 +312,6 @@
         switchTab('list');
     }
 
-    // 刪除客戶
     function deleteCustomer(id) {
         if(confirm('確定要刪除這位車友的資料嗎？')) {
             customers = customers.filter(c => c.id !== id);
@@ -327,7 +320,6 @@
         }
     }
 
-    // 更新保養日期為今天
     function updateMaintenance(id) {
         if(confirm('確認已完成保養？系統將把保養日期更新為今天。')) {
             const index = customers.findIndex(c => c.id === id);
@@ -339,13 +331,11 @@
         }
     }
 
-    // 將換行符號轉為 HTML 的 <br> 讓卡片可以正常顯示堆疊紀錄
     function formatMultilineText(text) {
         if (!text || text === '無') return '無';
         return text.replace(/\n/g, '<br>');
     }
 
-    // 渲染客戶列表與保養提醒計算
     function renderCustomers() {
         const listDiv = document.getElementById('customerList');
         listDiv.innerHTML = '';
@@ -369,7 +359,6 @@
             const bModel = c.bikeModel || c.bike || '未填寫'; 
             const cIntensity = c.intensity || c.willing || '未選擇';
             
-            // 使用轉換函數處理多行文字
             const cRelated = formatMultilineText(c.relatedSales);
             const cParts = formatMultilineText(c.partsReplaced);
             const cNotes = formatMultilineText(c.notes);
@@ -433,7 +422,6 @@
         });
     }
 
-    // 產生約騎名單
     function generateInviteList() {
         const eventName = document.getElementById('eventName').value.trim() || '週末約騎活動';
         const resultDiv = document.getElementById('inviteResult');
@@ -457,26 +445,34 @@
         resultDiv.innerHTML = text;
     }
 
-    // 匯出 Excel (CSV)
+    // 升級版：完全相容 Excel 內建換行 (Alt+Enter) 機制的 CSV 安全編碼器
     function exportToExcel() {
         if(customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
 
         let csvContent = "\ufeff"; 
         csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,客戶關聯銷售,上次保養日期,更換零件紀錄,騎乘強度,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
 
-        customers.forEach(c => {
-            const safeName = c.name.replace(/,/g, '，');
-            const pDate = c.purchaseDate || '未填寫';
-            const bModel = (c.bikeModel || c.bike || '未填寫').replace(/,/g, '，');
-            
-            // 匯出到 Excel 時，把換行轉成 " | " 分隔符號，確保不會破壞 CSV 結構
-            const cRelated = (c.relatedSales || '無').replace(/,/g, '，').replace(/\n/g, ' | ');
-            const cParts = (c.partsReplaced || '無').replace(/,/g, '，').replace(/\n/g, ' | ');
-            const safeNotes = (c.notes || '無').replace(/,/g, '，').replace(/\n/g, ' | '); 
-            
-            const cIntensity = c.intensity || c.willing || '未選擇';
+        // 強大的安全轉換包裝器：將欄位用雙引號嚴格封裝，並將內部的單雙引號轉義
+        // 如此一來，文字內的 \n 換行符號在 Excel 中會直接被識別為「儲存格內換行」，而不會錯格
+        const csvSafe = (text) => {
+            if (!text || text === '無') return '"無"';
+            return `"${text.replace(/"/g, '""')}"`;
+        };
 
-            csvContent += `${safeName},${c.phone},${c.line},${pDate},${bModel},${cRelated},${c.lastMainDate},${cParts},${cIntensity},${safeNotes},${c.fitting.saddle},${c.fitting.reach},${c.fitting.stack}\n`;
+        customers.forEach(c => {
+            const safeName = c.name;
+            const pDate = c.purchaseDate || '未填寫';
+            const bModel = c.bikeModel || c.bike || '未填寫'; 
+            const cRelated = c.relatedSales || '無';
+            const cParts = c.partsReplaced || '無';
+            const safeNotes = c.notes || '無';
+            const cIntensity = c.intensity || c.willing || '未選擇';
+            const lastMain = c.lastMainDate || '未填寫';
+            const saddle = c.fitting.saddle || 'N/A';
+            const reach = c.fitting.reach || 'N/A';
+            const stack = c.fitting.stack || 'N/A';
+
+            csvContent += `${csvSafe(safeName)},${csvSafe(c.phone)},${csvSafe(c.line)},${csvSafe(pDate)},${csvSafe(bModel)},${csvSafe(cRelated)},${csvSafe(lastMain)},${csvSafe(cParts)},${csvSafe(cIntensity)},${csvSafe(safeNotes)},${csvSafe(saddle)},${csvSafe(reach)},${csvSafe(stack)}\n`;
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
