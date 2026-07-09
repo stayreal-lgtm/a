@@ -60,9 +60,6 @@
         .info-item span { color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 4px; }
         .info-item strong { color: var(--text-main); line-height: 1.5; display: block; }
         
-        /* 區隔線樣式 */
-        .section-divider { grid-column: 1 / -1; margin-top: 6px; border-top: 1px dashed #424242; padding-top: 6px; }
-        
         .fitting-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--accent); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 0.9rem; }
         
         .card-actions { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
@@ -87,12 +84,14 @@
     <h1>嘉義店客戶管理</h1>
 
     <div class="tabs">
-        <div class="tab-btn active" id="tabBtnList" onclick="switchTab('list', event)">車友總覽</div>
-        <div class="tab-btn" id="tabBtnAdd" onclick="switchTab('add', event)">新增建檔</div>
-        <div class="tab-btn" id="tabBtnMaintenance" onclick="switchTab('maintenance', event)">保養通知</div>
-        <div class="tab-btn" id="tabBtnEvents" onclick="switchTab('events', event)">約騎名單</div>
+        <!-- 移除所有不相容的 event 傳遞，改為乾淨安全的調用方式 -->
+        <div class="tab-btn active" id="tabBtnList" onclick="switchTab('list')">車友總覽</div>
+        <div class="tab-btn" id="tabBtnAdd" onclick="switchTab('add')">新增建檔</div>
+        <div class="tab-btn" id="tabBtnMaintenance" onclick="switchTab('maintenance')">保養通知</div>
+        <div class="tab-btn" id="tabBtnEvents" onclick="switchTab('events')">約騎名單</div>
     </div>
 
+    <!-- 1. 新增/修改 面板 -->
     <div id="tab-add" class="panel">
         <h2 id="formTitle">建立新車友檔案</h2>
         <div class="form-grid">
@@ -186,16 +185,17 @@
                 </label>
                 <textarea id="cNotes" rows="3" placeholder="紀錄客人的特殊需求或報價追蹤..."></textarea>
             </div>
-
         </div>
         <button id="saveBtn" class="action-btn" onclick="saveCustomer()">儲存客戶資料</button>
     </div>
 
+    <!-- 2. 車友總覽面板 -->
     <div id="tab-list" class="panel active">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2 style="margin: 0; border: none;">客戶名單 (依姓氏筆畫排序)</h2>
+            <h2 style="margin: 0; border: none;">客戶名單</h2>
             <div style="display: flex; gap: 8px;">
-                <input type="file" id="importCsvFile" accept=".csv" style="display: none;" onchange="handleImportCSV(event)">
+                <!-- 修正：使用更安全的 this 傳遞，確保匯入功能在所有設備都能觸發 -->
+                <input type="file" id="importCsvFile" accept=".csv" style="display: none;" onchange="handleImportCSV(this)">
                 <button class="btn-small btn-edit" onclick="document.getElementById('importCsvFile').click()">匯入 CSV</button>
                 <button class="btn-small" style="background: var(--text-muted); color: #1a1a1d;" onclick="exportToExcel()">匯出 Excel</button>
             </div>
@@ -203,6 +203,7 @@
         <div id="customerList"></div>
     </div>
 
+    <!-- 3. 保養通知名單 -->
     <div id="tab-maintenance" class="panel">
         <h2>保養通知名單</h2>
         <div class="event-invite-box">
@@ -218,6 +219,7 @@
         </div>
     </div>
 
+    <!-- 4. 約騎活動面板 -->
     <div id="tab-events" class="panel">
         <h2>發起約騎活動</h2>
         <div class="event-invite-box">
@@ -264,8 +266,9 @@
         editingCustomerId = null;
     }
 
-    function switchTab(tabId, e) {
-        if (tabId === 'add' && e && e.target && e.target.id === 'tabBtnAdd') {
+    // 移除不相容的 event 對象，加入內部 isEdit 狀態標籤
+    function switchTab(tabId, isEdit = false) {
+        if (tabId === 'add' && !isEdit) {
             resetForm();
         }
 
@@ -304,7 +307,8 @@
         document.getElementById('formTitle').innerText = '✏️ 修改車友檔案';
         document.getElementById('saveBtn').innerText = '更新客戶資料';
 
-        switchTab('add', null); 
+        // 告訴 switchTab 這是「編輯模式」，不要清空表單
+        switchTab('add', true); 
     }
 
     function saveCustomer() {
@@ -351,7 +355,7 @@
 
         localStorage.setItem('veloCrmData', JSON.stringify(customers));
         resetForm();
-        switchTab('list', null);
+        switchTab('list');
     }
 
     function deleteCustomer(id) {
@@ -388,10 +392,16 @@
             return;
         }
 
+        // 核心修正：移除會導致 Apple/Safari 設備崩潰當機的 collation: 'stroke' 參數
+        // 改用最基礎安全的 localeCompare 進行中文字排序
         const sortedCustomers = [...customers].sort((a, b) => {
             const nameA = a.name || '';
             const nameB = b.name || '';
-            return nameA.localeCompare(nameB, 'zh-TW', { collation: 'stroke' });
+            try {
+                return nameA.localeCompare(nameB, 'zh-TW');
+            } catch (e) {
+                return nameA > nameB ? 1 : -1; // 最終防禦：就算出錯也能安全排序
+            }
         });
 
         const today = new Date();
@@ -438,6 +448,7 @@
                             <span>📦 關聯銷售紀錄</span><strong>${cRelated}</strong>
                         </div>
                         
+                        <!-- 專業維修保養 -->
                         <div class="info-item full-width" style="grid-column: 1 / -1; margin-top: 15px; border-top: 1px dashed #424242; padding-top: 12px;">
                             <span>上次大保養</span>
                             <strong>${c.lastMainDate}</strong>
@@ -447,6 +458,7 @@
                             <strong>${cParts}</strong>
                         </div>
                         
+                        <!-- 活動群聚行銷 -->
                         <div class="info-item full-width" style="grid-column: 1 / -1; margin-top: 20px; border-top: 1px dashed #424242; padding-top: 12px;">
                             <span>騎乘強度輪廓</span>
                             <strong>${cIntensity}</strong>
@@ -503,4 +515,175 @@
         text += `--------------------------\n`;
         targetRiders.forEach(r => {
             const bModel = r.bikeModel || r.bike || '未填寫';
-            text += `[ ] ${r.name || '無名氏'} (LINE: ${r.line || '無'})\n
+            text += `[ ] ${r.name || '無名氏'} (LINE: ${r.line || '無'})\n    上次保養: ${r.lastMainDate} | 車款: ${bModel}\n\n`;
+        });
+        text += `--------------------------\n`;
+        text += `老闆，以上是建議發送保養提醒的車友，趕快複製起來貼到 LINE 關心他們吧！`;
+
+        resultDiv.innerHTML = text;
+    }
+
+    function generateInviteList() {
+        const eventName = document.getElementById('eventName').value.trim() || '週末約騎活動';
+        const resultDiv = document.getElementById('inviteResult');
+        if (!resultDiv) return;
+        
+        const targetRiders = customers.filter(c => (c.intensity || c.willing) === '高' || (c.intensity || c.willing) === '中');
+        
+        if(targetRiders.length === 0) {
+            resultDiv.innerHTML = '目前沒有符合「強度：高/中」的車友資料。';
+            return;
+        }
+
+        let text = `🚴‍♂️ 【${eventName}】邀請名單\n`;
+        text += `--------------------------\n`;
+        targetRiders.forEach(r => {
+            const bModel = r.bikeModel || r.bike || '未填寫';
+            text += `[ ] ${r.name || '無名氏'} (LINE: ${r.line || '無'}) - 車款: ${bModel}\n`;
+        });
+        text += `--------------------------\n`;
+        text += `老闆，以上是本次建議發送 LINE 邀請的車友名單！`;
+
+        resultDiv.innerHTML = text;
+    }
+
+    // --- CSV 匯入與解析防呆強化版 ---
+    function handleImportCSV(inputElement) {
+        const file = inputElement.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            processCSVData(text);
+            inputElement.value = ''; // 允許重新上傳同檔名的 CSV
+        };
+        reader.readAsText(file, 'utf-8');
+    }
+
+    function processCSVData(csvText) {
+        if (csvText.charCodeAt(0) === 0xFEFF) {
+            csvText = csvText.substring(1);
+        }
+
+        const data = CSVToArray(csvText, ",");
+        if (data.length < 2) {
+            alert('檔案無有效資料或格式不符！');
+            return;
+        }
+
+        let importCount = 0;
+        let updateCount = 0;
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            // 確保行有足夠欄位且姓名不為空
+            if (row.length < 13 || !row[0]) continue; 
+
+            const name = (row[0] === '無' || row[0] === '無名氏') ? '' : row[0];
+            const phone = row[1] === '無' ? '' : row[1];
+            if (!name || !phone) continue; 
+
+            const customerData = {
+                id: Date.now() + i,
+                name: name,
+                phone: phone,
+                line: (row[2] && row[2] !== '無') ? row[2] : '未提供',
+                purchaseDate: (row[3] && row[3] !== '未填寫') ? row[3] : '未填寫',
+                bikeModel: (row[4] && row[4] !== '未填寫') ? row[4] : '未填寫',
+                relatedSales: (row[5] && row[5] !== '無') ? row[5] : '無',
+                lastMainDate: (row[6] && row[6] !== '未填寫') ? row[6] : '未填寫',
+                partsReplaced: (row[7] && row[7] !== '無') ? row[7] : '無',
+                intensity: (row[8] && row[8] !== '未選擇') ? row[8] : '未選擇',
+                eventRecords: (row[9] && row[9] !== '無') ? row[9] : '無',
+                notes: (row[10] && row[10] !== '無') ? row[10] : '無',
+                fitting: {
+                    saddle: (row[11] && row[11] !== 'N/A') ? row[11] : 'N/A',
+                    reach: (row[12] && row[12] !== 'N/A') ? row[12] : 'N/A',
+                    stack: (row[13] && row[13] !== 'N/A') ? row[13] : 'N/A'
+                }
+            };
+
+            const existingIndex = customers.findIndex(c => c.name === name && c.phone === phone);
+            if (existingIndex !== -1) {
+                customerData.id = customers[existingIndex].id;
+                customers[existingIndex] = customerData;
+                updateCount++;
+            } else {
+                customers.push(customerData);
+                importCount++;
+            }
+        }
+
+        localStorage.setItem('veloCrmData', JSON.stringify(customers));
+        renderCustomers();
+        alert(`匯入完成！\n新增了 ${importCount} 位新車友\n更新了 ${updateCount} 位舊車友資料`);
+    }
+
+    function CSVToArray(strData, strDelimiter){
+        strDelimiter = (strDelimiter || ",");
+        const objPattern = new RegExp(
+            ("(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
+            "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+            "([^\"\\" + strDelimiter + "\\r\\n]*))"),
+            "gi"
+        );
+        const arrData = [[]];
+        let arrMatches = null;
+        while (arrMatches = objPattern.exec( strData )){
+            const strMatchedDelimiter = arrMatches[ 1 ];
+            if (strMatchedDelimiter.length && strMatchedDelimiter !== strDelimiter){
+                arrData.push( [] );
+            }
+            let strMatchedValue;
+            if (arrMatches[ 2 ]){
+                strMatchedValue = arrMatches[ 2 ].replace(new RegExp( "\"\"", "g" ), "\"");
+            } else {
+                strMatchedValue = arrMatches[ 3 ];
+            }
+            arrData[ arrData.length - 1 ].push( strMatchedValue );
+        }
+        return arrData;
+    }
+
+    function exportToExcel() {
+        if(!customers || customers.length === 0) { alert('沒有資料可以匯出喔！'); return; }
+
+        let csvContent = "\ufeff"; 
+        csvContent += "姓名,電話,LINE名稱,買車日期,騎乘車款,客戶關聯銷售,上次保養日期,更換零件紀錄,騎乘強度,邀約活動紀錄,特別備註,座高(cm),Reach(mm),Stack(mm)\n";
+
+        const csvSafe = (text) => {
+            if (!text || text === '無') return '"無"';
+            return `"${text.replace(/"/g, '""')}"`;
+        };
+
+        customers.forEach(c => {
+            const safeName = c.name || '無名氏';
+            const pDate = c.purchaseDate || '未填寫';
+            const bModel = c.bikeModel || c.bike || '未填寫'; 
+            const cRelated = c.relatedSales || '無';
+            const cParts = c.partsReplaced || '無';
+            const cEvents = c.eventRecords || '無'; 
+            const safeNotes = c.notes || '無';
+            const cIntensity = c.intensity || c.willing || '未選擇';
+            const lastMain = c.lastMainDate || '未填寫';
+            const saddle = (c.fitting && c.fitting.saddle) ? c.fitting.saddle : 'N/A';
+            const reach = (c.fitting && c.fitting.reach) ? c.fitting.reach : 'N/A';
+            const stack = (c.fitting && c.fitting.stack) ? c.fitting.stack : 'N/A';
+
+            csvContent += `${csvSafe(safeName)},${csvSafe(c.phone)},${csvSafe(c.line)},${csvSafe(pDate)},${csvSafe(bModel)},${csvSafe(cRelated)},${csvSafe(lastMain)},${csvSafe(cParts)},${csvSafe(cIntensity)},${csvSafe(cEvents)},${csvSafe(safeNotes)},${csvSafe(saddle)},${csvSafe(reach)},${csvSafe(stack)}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `嘉義店_客戶名單_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+</body>
+</html>
