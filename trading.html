@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專業交易復盤終端機</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --win: #3fb950;
+            --loss: #f85149;
+            --border: #30363d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; line-height: 1.5; font-size: 14px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: var(--text-main); margin-bottom: 20px; font-weight: 600; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        
+        .grid-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
+        
+        .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .panel-title { font-size: 1.1rem; color: var(--accent); margin-bottom: 15px; font-weight: 600; }
+        
+        /* 儀表板數據 */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; margin-bottom: 15px; }
+        .stat-box { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid var(--border); }
+        .stat-box span { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+        .stat-box strong { font-size: 1.2rem; }
+        .text-win { color: var(--win); }
+        .text-loss { color: var(--loss); }
+
+        /* 表單 */
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 8px 10px; background: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 60px; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+        
+        /* 股票輸入群組 */
+        .input-group { display: flex; gap: 8px; }
+        .btn-goodinfo { background: #238636; color: white; border: none; padding: 0 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+        .btn-goodinfo:hover { background: #2ea043; }
+
+        .btn-submit { width: 100%; padding: 10px; background: var(--accent); color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-submit:hover { opacity: 0.9; }
+
+        /* 交易明細列表 */
+        .trade-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        .trade-table th, .trade-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        .trade-table th { color: var(--text-muted); font-weight: normal; }
+        .btn-del { background: transparent; color: var(--loss); border: 1px solid var(--loss); padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 0.75rem; }
+        .btn-del:hover { background: rgba(248, 81, 73, 0.1); }
+        
+        .chart-container { height: 200px; width: 100%; }
+        
+        .header-actions { display: flex; justify-content: space-between; align-items: center; }
+        .btn-export { background: transparent; color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+        .btn-export:hover { border-color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-actions">
+        <h1>專業交易復盤終端機</h1>
+        <button class="btn-export" onclick="exportToExcel()">匯出 Excel</button>
+    </div>
+
+    <div class="grid-layout">
+        <div>
+            <div class="panel">
+                <div class="panel-title">📝 新增交易紀錄</div>
+                <div class="form-group">
+                    <label>出場日期</label>
+                    <input type="date" id="tDate">
+                </div>
+                
+                <div class="form-group">
+                    <label>股票代號 / 名稱</label>
+                    <div class="input-group">
+                        <input type="text" id="tTicker" placeholder="例如：2330">
+                        <button type="button" class="btn-goodinfo" onclick="openGoodinfo()">查 Goodinfo</button>
+                    </div>
+                </div>
+
+                <div class="grid-layout" style="grid-template-columns: 1fr 1fr; gap: 10px; display: grid;">
+                    <div class="form-group">
+                        <label>多空方向</label>
+                        <select id="tDirection">
+                            <option value="做多">做多 (Long)</option>
+                            <option value="做空">做空 (Short)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>策略類型</label>
+                        <select id="tStrategy">
+                            <option value="量化訊號">量化訊號</option>
+                            <option value="微結構異動">微結構異動</option>
+                            <option value="動能突破">動能突破</option>
+                            <option value="乖離均值">乖離均值</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>已實現損益 (包含手續費/稅)</label>
+                    <input type="number" id="tPnL" placeholder="獲利填正數，虧損填負數">
+                </div>
+
+                <div class="form-group">
+                    <label>復盤檢討與微結構筆記</label>
+                    <textarea id="tNotes" placeholder="紀錄委託簿異常、滑價狀況、是否確實遵守策略紀律..."></textarea>
+                </div>
+
+                <button class="btn-submit" onclick="saveTrade()">儲存這筆交易</button>
+            </div>
+        </div>
+
+        <div>
+            <div class="panel">
+                <div class="panel-title">📊 累積績效與勝率</div>
+                <div class="dashboard-grid">
+                    <div class="stat-box">
+                        <span>總交易筆數</span>
+                        <strong id="statCount">0</strong>
+                    </div>
+                    <div class="stat-box">
+                        <span>整體勝率</span>
+                        <strong id="statWinRate">0%</strong>
+                    </div>
+                    <div class="stat-box">
+                        <span>累積淨損益</span>
+                        <strong id="statTotalPnL" class="text-win">$0</strong>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="equityCurveChart"></canvas>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">📜 交易明細</div>
+                <div style="overflow-x: auto;">
+                    <table class="trade-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>標的</th>
+                                <th>策略</th>
+                                <th>損益</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradeList">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let trades = [];
+    let equityChart = null;
+
+    window.onload = function() {
+        document.getElementById('tDate').value = new Date().toISOString().split('T')[0];
+        loadData();
+    };
+
+    // 專屬捷徑：打開 Goodinfo 頁面
+    function openGoodinfo() {
+        const ticker = document.getElementById('tTicker').value.trim();
+        // 透過正則表達式，過濾出純數字部分作為代號
+        const codeMatch = ticker.match(/\d{4,}/); 
+        const code = codeMatch ? codeMatch[0] : ticker;
+        
+        if (!code) {
+            alert('請先輸入股票代號！');
+            return;
+        }
+        window.open(`https://goodinfo.tw/tw/StockDetail.asp?STOCK_ID=${code}`, '_blank');
+    }
+
+    function loadData() {
+        try {
+            const localData = localStorage.getItem('quantTradeJournal');
+            if (localData) {
+                trades = JSON.parse(localData);
+            }
+        } catch (e) {
+            console.error("載入資料失敗", e);
+            trades = [];
+        }
+        updateDashboard();
+    }
+
+    function saveTrade() {
+        const date = document.getElementById('tDate').value;
+        const ticker = document.getElementById('tTicker').value.trim();
+        const direction = document.getElementById('tDirection').value;
+        const strategy = document.getElementById('tStrategy').value;
+        const pnl = parseFloat(document.getElementById('tPnL').value);
+        const notes = document.getElementById('tNotes').value.trim();
+
+        if (!date || !ticker || isNaN(pnl)) {
+            alert('日期、標的與損益為必填欄位！');
+            return;
+        }
+
+        const newTrade = {
+            id: Date.now(),
+            date: date,
+            ticker: ticker,
+            direction: direction,
+            strategy: strategy,
+            pnl: pnl,
+            notes: notes || '無'
+        };
+
+        trades.push(newTrade);
+        // 以日期正序排列（越舊的在前面），這樣畫資金曲線才正確
+        trades.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        localStorage.setItem('quantTradeJournal', JSON.stringify(trades));
+        
+        document.getElementById('tTicker').value = '';
+        document.getElementById('tPnL').value = '';
+        document.getElementById('tNotes').value = '';
+        
+        updateDashboard();
+    }
+
+    function deleteTrade(id) {
+        if(confirm('確定要刪除這筆交易紀錄嗎？')) {
+            trades = trades.filter(t => t.id !== id);
+            localStorage.setItem('quantTradeJournal', JSON.stringify(trades));
+            updateDashboard();
+        }
+    }
+
+    function updateDashboard() {
+        const listDiv = document.getElementById('tradeList');
+        listDiv.innerHTML = '';
+
+        let totalPnL = 0;
+        let winCount = 0;
+        let equityData = [0]; // 資金曲線初始為 0
+        let labels = ['起始'];
+
+        if (trades.length === 0) {
+            listDiv.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#8b949e;">尚無交易紀錄</td></tr>';
+        }
+
+        // 這裡將陣列反轉，為了在表格中顯示「最新的在最上面」
+        const displayTrades = [...trades].reverse();
+
+        displayTrades.forEach(t => {
+            const pnlClass = t.pnl >= 0 ? 'text-win' : 'text-loss';
+            const sign = t.pnl > 0 ? '+' : '';
+            
+            listDiv.innerHTML += `
+                <tr>
+                    <td>${t.date}</td>
+                    <td><strong>${t.ticker}</strong><br><span style="font-size:0.75rem; color:#8b949e;">${t.direction}</span></td>
+                    <td>${t.strategy}</td>
+                    <td class="${pnlClass}" style="font-weight:bold;">${sign}${t.pnl.toLocaleString()}</td>
+                    <td><button class="btn-del" onclick="deleteTrade(${t.id})">刪</button></td>
+                </tr>
+            `;
+        });
+
+        // 計算統計數據 (使用正序的 trades)
+        trades.forEach((t, index) => {
+            totalPnL += t.pnl;
+            if (t.pnl > 0) winCount++;
+            
+            equityData.push(totalPnL);
+            // x軸顯示日期簡寫
+            labels.push(t.date.substring(5)); 
+        });
+
+        const winRate = trades.length > 0 ? ((winCount / trades.length) * 100).toFixed(1) : 0;
+
+        document.getElementById('statCount').innerText = trades.length;
+        document.getElementById('statWinRate').innerText = `${winRate}%`;
+        
+        const elTotalPnL = document.getElementById('statTotalPnL');
+        elTotalPnL.innerText = `$${totalPnL.toLocaleString()}`;
+        elTotalPnL.className = totalPnL >= 0 ? 'text-win' : 'text-loss';
+
+        drawChart(labels, equityData);
+    }
+
+    function drawChart(labels, data) {
+        const ctx = document.getElementById('equityCurveChart').getContext('2d');
+        
+        if (equityChart) {
+            equityChart.destroy();
+        }
+
+        // 決定線條顏色：目前創新高或是獲利就是藍色，否則根據總損益決定
+        const finalPnL = data[data.length - 1] || 0;
+        const lineColor = finalPnL >= 0 ? '#58a6ff' : '#f85149';
+
+        equityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '累積淨損益 (Equity Curve)',
+                    data: data,
+                    borderColor: lineColor,
+                    backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    fill: true,
+                    stepped: true // 階梯線更符合單筆交易的跳動感
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' 累積損益: $' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#8b949e', font: {size: 10} }, grid: { display: false } },
+                    y: { ticks: { color: '#8b949e', font: {size: 10} }, grid: { color: '#30363d' } }
+                }
+            }
+        });
+    }
+
+    function exportToExcel() {
+        if(trades.length === 0) { alert('沒有交易紀錄可以匯出！'); return; }
+
+        let csvContent = "\ufeff"; 
+        csvContent += "出場日期,標的,多空方向,策略類型,已實現損益,復盤筆記\n";
+
+        const csvSafe = (text) => {
+            if (!text || text === '無') return '"無"';
+            return `"${text.replace(/"/g, '""').replace(/\n/g, ' | ')}"`;
+        };
+
+        // 匯出時也採用最新的在上面的邏輯
+        const exportTrades = [...trades].reverse();
+
+        exportTrades.forEach(t => {
+            csvContent += `${csvSafe(t.date)},${csvSafe(t.ticker)},${csvSafe(t.direction)},${csvSafe(t.strategy)},${t.pnl},${csvSafe(t.notes)}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `交易日誌_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    }
+</script>
+</body>
+</html>
