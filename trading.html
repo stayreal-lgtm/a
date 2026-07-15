@@ -54,17 +54,19 @@
         .btn-submit:hover { opacity: 0.9; }
 
         /* 圖片上傳區 */
-        .image-preview-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+        .image-preview-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
         .img-wrap { background: #0d1117; border: 1px solid var(--border); border-radius: 4px; padding: 4px; text-align: center; }
         .img-wrap span { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
-        .img-wrap img { max-width: 100%; max-height: 120px; object-fit: contain; border-radius: 2px; cursor: pointer; }
+        .img-wrap img { max-width: 100%; max-height: 100px; object-fit: contain; border-radius: 2px; cursor: pointer; }
 
-        /* 交易明細列表卡片化 */
-        .trade-card { background: #1f242c; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
-        .trade-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
-        .trade-card-name { font-size: 1rem; font-weight: bold; }
-        .trade-card-body { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.85rem; }
-        .macro-data-box { background: rgba(0,0,0,0.2); padding: 6px; border-radius: 4px; grid-column: 1 / -1; font-size: 0.8rem; color: var(--text-muted); }
+        /* 交易明細列表卡片化 (天主體) */
+        .trade-card { background: #1f242c; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .trade-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .macro-data-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); margin-bottom: 12px; }
+        
+        /* 單筆交易子項目 */
+        .trade-item-box { background: rgba(255,255,255,0.01); border: 1px solid var(--border); padding: 12px; border-radius: 6px; margin-bottom: 8px; }
+        .trade-item-box:last-child { margin-bottom: 0; }
         
         .chart-container { height: 250px; width: 100%; margin-bottom: 10px; }
         .btn-del { background: transparent; color: var(--loss); border: 1px solid var(--loss); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
@@ -94,7 +96,7 @@
                         <input type="date" id="tDate">
                     </div>
                     <div class="form-group">
-                        <label>主要操作標的</label>
+                        <label>主要操作標的 *</label>
                         <div class="input-group">
                             <input type="text" id="tTicker" placeholder="代號/名稱">
                             <button type="button" class="btn-goodinfo" onclick="goodinfoShortcut()">查籌碼</button>
@@ -113,16 +115,16 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>當日已實現總損益 *</label>
+                        <label>單筆已實現損益 *</label>
                         <input type="number" id="tPnL" placeholder="獲利填正，虧損填負">
                     </div>
                 </div>
 
-                <div class="form-section-title">📊 每日宏觀與期權籌碼追蹤</div>
+                <div class="form-section-title">📊 每日宏觀與期權籌碼追蹤 (當天填一次即可)</div>
                 
                 <div class="flex-row">
                     <div class="form-group">
-                        <label>外資期貨空單 (未平倉口數)</label>
+                        <label>外資期貨空單 (口數)</label>
                         <input type="number" id="mForeignOk" placeholder="口數">
                     </div>
                     <div class="form-group">
@@ -174,11 +176,11 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 15px;">
-                    <label>當日微結構思維與心得筆記</label>
-                    <textarea id="tNotes" rows="3" placeholder="紀錄開盤量能、盤中委託單異常、滑價、紀律執行狀況..."></textarea>
+                    <label>本筆交易微結構復盤筆記</label>
+                    <textarea id="tNotes" rows="3" placeholder="紀錄委託簿異常、滑價狀況、是否確實遵守策略紀律..."></textarea>
                 </div>
 
-                <button class="btn-submit" onclick="saveTradeRecord()">儲存今日復盤日誌</button>
+                <button class="btn-submit" onclick="saveTradeRecord()">儲存本筆交易紀錄</button>
             </div>
         </div>
 
@@ -186,8 +188,8 @@
             <div class="panel">
                 <div class="panel-title">累積資金曲線終端</div>
                 <div class="dashboard-grid">
-                    <div class="stat-box"><span>復盤天數</span><strong id="statCount">0</strong></div>
-                    <div class="stat-box"><span>交易勝率</span><strong id="statWinRate">0%</strong></div>
+                    <div class="stat-box"><span>總交易筆數</span><strong id="statCount">0</strong></div>
+                    <div class="stat-box"><span>策略總勝率</span><strong id="statWinRate">0%</strong></div>
                     <div class="stat-box"><span>累積淨損益</span><strong id="statTotalPnL">$0</strong></div>
                 </div>
                 <div class="chart-container">
@@ -196,7 +198,7 @@
             </div>
 
             <div class="panel">
-                <div class="panel-title">歷史交易日誌明細</div>
+                <div class="panel-title">歷史交易日誌明細 (籌碼獨立置頂)</div>
                 <div id="tradeLogContainer"></div>
             </div>
         </div>
@@ -204,23 +206,23 @@
 </div>
 
 <script>
-    let tradeJournal = [];
+    let tradeJournal = {}; // 改為物件字典格式： {"YYYY-MM-DD": { ... }}
     let equityChart = null;
     
     let reviewImgBase64 = "";
     let pnlImgBase64 = "";
 
-    // 核心修改處 1：幫所有歷史初始資料補上獨立 id，使刪除功能生效
-    const initialHistoryData = [
-        { id: 1, date: "2026-07-01", ticker: "大盤群組", strategy: "波段單", pnl: -1203, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { id: 2, date: "2026-07-02", ticker: "大盤群組", strategy: "波段單", pnl: -7424, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { id: 3, date: "2026-07-03", ticker: "大盤群組", strategy: "波段單", pnl: 62437, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { id: 4, date: "2026-07-06", ticker: "大盤群組", strategy: "波段單", pnl: -7708, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { id: 5, date: "2026-07-07", ticker: "大盤群組", strategy: "波段單", pnl: -53379, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { id: 6, date: "2026-07-08", ticker: "大盤群組", strategy: "波段單", pnl: -87735, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { id: 7, date: "2026-07-09", ticker: "大盤群組", strategy: "波段單", pnl: -50413, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { id: 8, date: "2026-07-13", ticker: "1303 南亞", strategy: "鎖漲停", pnl: 48014, notes: "今天現股當沖南亞鎖漲停！做得非常漂亮！", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" }
-    ];
+    // 核心重構：升級為全新支援「單日多筆交易依序排列」格式
+    const initialHistoryData = {
+        "2026-07-01": { date: "2026-07-01", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 1, ticker: "大盤群組", strategy: "波段單", pnl: -1203, notes: "歷史對帳單初始化轉換" }] },
+        "2026-07-02": { date: "2026-07-02", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 2, ticker: "大盤群組", strategy: "波段單", pnl: -7424, notes: "歷史對帳單初始化轉換" }] },
+        "2026-07-03": { date: "2026-07-03", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 3, ticker: "大盤群組", strategy: "波段單", pnl: 62437, notes: "歷史對帳單初始化轉換" }] },
+        "2026-07-06": { date: "2026-07-06", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 4, ticker: "大盤群組", strategy: "波段單", pnl: -7708, notes: "歷史對帳單初始化轉換" }] },
+        "2026-07-07": { date: "2026-07-07", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 5, ticker: "大盤群組", strategy: "波段單", pnl: -53379, notes: "歷史對帳單初始化轉換" }] },
+        "2026-07-08": { date: "2026-07-08", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 6, ticker: "大盤群組", strategy: "波段單", pnl: -87735, notes: "歷史對帳單初始化轉換" }] },
+        "2026-07-09": { date: "2026-07-09", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 7, ticker: "大盤群組", strategy: "波段單", pnl: -50413, notes: "歷史對帳單初始化轉換" }] },
+        "2026-07-13": { date: "2026-07-13", fOk: "—", fStock: "—", sStock: "—", tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—", imgRev: "", imgPnl: "", trades: [{ id: 8, ticker: "1303 南亞", strategy: "鎖漲停", pnl: 48014, notes: "今天現股當沖南亞鎖漲停！做得非常漂亮！" }] }
+    };
 
     window.onload = function() {
         document.getElementById('tDate').value = new Date().toISOString().split('T')[0];
@@ -228,16 +230,33 @@
     };
 
     function loadJournalData() {
-        try {
-            const localData = localStorage.getItem('veloQuantJournal_v2');
-            if (localData) {
-                tradeJournal = JSON.parse(localData);
+        // 使用 v3 獨立儲存，並提供全自動 V2 資料升級橋接器，防崩潰且不掉資料
+        const localDataV3 = localStorage.getItem('veloQuantJournal_v3');
+        if (localDataV3) {
+            tradeJournal = JSON.parse(localDataV3);
+        } else {
+            const localDataV2 = localStorage.getItem('veloQuantJournal_v2');
+            if (localDataV2) {
+                try {
+                    let oldData = JSON.parse(localDataV2);
+                    tradeJournal = {};
+                    if (Array.isArray(oldData)) {
+                        oldData.forEach(t => {
+                            if (!tradeJournal[t.date]) {
+                                tradeJournal[t.date] = {
+                                    date: t.date, fOk: t.fOk || "—", fStock: t.fStock || "—", sStock: t.sStock || "—",
+                                    tPoint: t.tPoint || "—", tPercent: t.tPercent || "—", oPoint: t.oPoint || "—", oPercent: t.oPercent || "—",
+                                    imgRev: t.imgRev || "", imgPnl: t.imgPnl || "", trades: []
+                                };
+                            }
+                            tradeJournal[t.date].trades.push({ id: t.id || Date.now(), ticker: t.ticker, strategy: t.strategy, pnl: t.pnl, notes: t.notes });
+                        });
+                    }
+                } catch(e) { tradeJournal = { ...initialHistoryData }; }
             } else {
-                tradeJournal = [...initialHistoryData];
-                localStorage.setItem('veloQuantJournal_v2', JSON.stringify(tradeJournal));
+                tradeJournal = { ...initialHistoryData };
             }
-        } catch (e) {
-            tradeJournal = [...initialHistoryData];
+            localStorage.setItem('veloQuantJournal_v3', JSON.stringify(tradeJournal));
         }
         refreshDashboard();
     }
@@ -253,13 +272,11 @@
     function previewImage(input, previewId) {
         const file = input.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = function(e) {
             const imgEl = document.getElementById(previewId);
             imgEl.src = e.target.result;
             imgEl.style.display = 'block';
-            
             if (previewId === 'preReview') reviewImgBase64 = e.target.result;
             if (previewId === 'prePnL') pnlImgBase64 = e.target.result;
         };
@@ -268,44 +285,52 @@
 
     function saveTradeRecord() {
         const date = document.getElementById('tDate').value;
-        const ticker = document.getElementById('tTicker').value.trim() || "大盤群組";
+        const ticker = document.getElementById('tTicker').value.trim() || "未知標的";
         const strategy = document.getElementById('tStrategy').value;
         const pnl = parseFloat(document.getElementById('tPnL').value);
 
         if (!date || isNaN(pnl)) {
-            alert('今日損益金額是必填的欄位！');
+            alert('交易日期與損益金額是必填的欄位！');
             return;
         }
 
-        const record = {
+        // 智慧型繼承機制：如果當天已有資料，且新欄位保持空白，則自動沿用原有籌碼
+        if (!tradeJournal[date]) {
+            tradeJournal[date] = {
+                date: date, fOk: "—", fStock: "—", sStock: "—",
+                tPoint: "—", tPercent: "—", oPoint: "—", oPercent: "—",
+                imgRev: "", imgPnl: "", trades: []
+            };
+        }
+
+        const v = (id) => document.getElementById(id).value.trim();
+        if (v('mForeignOk')) tradeJournal[date].fOk = v('mForeignOk');
+        if (v('mForeignStock')) tradeJournal[date].fStock = v('mForeignStock');
+        if (v('mSitcaStock')) tradeJournal[date].sStock = v('mSitcaStock');
+        if (v('mTsexPoint')) tradeJournal[date].tPoint = v('mTsexPoint');
+        if (v('mTsexPercent')) tradeJournal[date].tPercent = v('mTsexPercent');
+        if (v('mOtcPoint')) tradeJournal[date].oPoint = v('mOtcPoint');
+        if (v('mOtcPercent')) tradeJournal[date].oPercent = v('mOtcPercent');
+        
+        if (reviewImgBase64) tradeJournal[date].imgRev = reviewImgBase64;
+        if (pnlImgBase64) tradeJournal[date].imgPnl = pnlImgBase64;
+
+        // 新增獨立的單筆交易子項目
+        const newTradeItem = {
             id: Date.now(),
-            date: date,
             ticker: ticker,
             strategy: strategy,
             pnl: pnl,
-            notes: document.getElementById('tNotes').value.trim() || '無',
-            fOk: document.getElementById('mForeignOk').value || "—",
-            fStock: document.getElementById('mForeignStock').value || "—",
-            sStock: document.getElementById('mSitcaStock').value || "—",
-            tPoint: document.getElementById('mTsexPoint').value || "—",
-            tPercent: document.getElementById('mTsexPercent').value || "—",
-            oPoint: document.getElementById('mOtcPoint').value || "—",
-            oPercent: document.getElementById('mOtcPercent').value || "—",
-            imgRev: reviewImgBase64,
-            imgPnl: pnlImgBase64
+            notes: document.getElementById('tNotes').value.trim() || '無'
         };
 
-        tradeJournal = tradeJournal.filter(t => t.date !== date);
-        tradeJournal.push(record);
-        tradeJournal.sort((a, b) => new Date(a.date) - new Date(b.date));
+        tradeJournal[date].trades.push(newTradeItem);
+        localStorage.setItem('veloQuantJournal_v3', JSON.stringify(tradeJournal));
 
-        localStorage.setItem('veloQuantJournal_v2', JSON.stringify(tradeJournal));
-
-        // 清空輸入
+        // 清空個股輸入格，保留大盤數據格方便下一筆連續輸入
         document.getElementById('tTicker').value = '';
         document.getElementById('tPnL').value = '';
         document.getElementById('tNotes').value = '';
-        document.querySelectorAll('.panel input[type="number"], .panel input[type="text"]').forEach(el => el.value = '');
         document.getElementById('preReview').style.display = 'none';
         document.getElementById('prePnL').style.display = 'none';
         reviewImgBase64 = "";
@@ -314,20 +339,25 @@
         refreshDashboard();
     }
 
-    // 核心修改處 2：精準依照識別碼進行刪除
-    function deleteRecord(id) {
-        if (confirm('確定要永久刪除這筆復盤日誌嗎？')) {
-            tradeJournal = tradeJournal.filter(t => t.id !== id);
-            localStorage.setItem('veloQuantJournal_v2', JSON.stringify(tradeJournal));
-            refreshDashboard();
+    // 精準單筆交易刪除機制
+    function deleteRecord(date, tradeId) {
+        if (confirm('確定要永久刪除這筆交易明細嗎？')) {
+            if (tradeJournal[date]) {
+                tradeJournal[date].trades = tradeJournal[date].trades.filter(t => t.id !== tradeId);
+                // 如果當天所有明細都刪光了，自動清除整張天卡片
+                if (tradeJournal[date].trades.length === 0) {
+                    delete tradeJournal[date];
+                }
+                localStorage.setItem('veloQuantJournal_v3', JSON.stringify(tradeJournal));
+                refreshDashboard();
+            }
         }
     }
 
-    // 核心修改處 3：優化為全面清空，給予完全乾淨的終端版面
     function clearCache() {
-        if (confirm('確定要清空所有的交易紀錄與歷史日誌嗎？（此動作無法復原）')) {
-            tradeJournal = [];
-            localStorage.setItem('veloQuantJournal_v2', JSON.stringify(tradeJournal));
+        if (confirm('確定要清空所有的交易紀錄嗎？（此動作無法復原）')) {
+            tradeJournal = {};
+            localStorage.setItem('veloQuantJournal_v3', JSON.stringify(tradeJournal));
             refreshDashboard();
         }
     }
@@ -342,71 +372,106 @@
         if (!container) return;
         container.innerHTML = '';
 
-        let totalPnL = 0;
-        let winCount = 0;
-        let equityCurve = [0];
+        let overallTotalPnL = 0;
+        let overallWinCount = 0;
+        let overallTradeCount = 0;
+        
+        let equityCurveData = [0];
         let chartLabels = ['起始'];
 
-        const displayData = [...tradeJournal].reverse();
+        // 日期降序排列 (最新的日子排在最上面)
+        const sortedDatesDesc = Object.keys(tradeJournal).sort((a, b) => new Date(b) - new Date(a));
 
-        displayData.forEach(t => {
-            const pnlColor = t.pnl >= 0 ? 'var(--win)' : 'var(--loss)';
-            const sign = t.pnl > 0 ? '+' : '';
-            
-            const revImgHtml = t.imgRev ? `<div class="img-wrap"><span>點位檢討圖</span><img src="${t.imgRev}" onclick="window.open(this.src)"></div>` : '';
-            const pnlImgHtml = t.imgPnl ? `<div class="img-wrap"><span>對帳單圖</span><img src="${t.imgPnl}" onclick="window.open(this.src)"></div>` : '';
-            const imgBlock = (t.imgRev || t.imgPnl) ? `<div class="image-preview-box" style="grid-column:1/-1;">${revImgHtml}${pnlImgHtml}</div>` : '';
+        sortedDatesDesc.forEach(date => {
+            const day = tradeJournal[date];
+            if (!day || !day.trades || day.trades.length === 0) return;
 
-            container.innerHTML += `
+            // 處理圖片展開區塊
+            const revImgHtml = day.imgRev ? `<div class="img-wrap"><span>點位檢討圖</span><img src="${day.imgRev}" onclick="window.open(this.src)"></div>` : '';
+            const pnlImgHtml = day.imgPnl ? `<div class="img-wrap"><span>對帳單圖</span><img src="${day.imgPnl}" onclick="window.open(this.src)"></div>` : '';
+            const imgBlock = (day.imgRev || day.imgPnl) ? `<div class="image-preview-box">${revImgHtml}${pnlImgHtml}</div>` : '';
+
+            // 生成「每日宏觀與期權籌碼追蹤」置頂結構
+            let dayCardHtml = `
                 <div class="trade-card">
                     <div class="trade-card-header">
-                        <div><strong>${t.date}</strong> <span style="color:var(--text-muted); margin-left:8px;">${t.ticker}</span></div>
-                        <div style="color:${pnlColor}; font-weight:bold; font-size:1.1rem;">${sign}${t.pnl.toLocaleString()}</div>
+                        <div><strong style="font-size:1.1rem; color:var(--accent);">📅 ${day.date} 盤後復盤日誌</strong></div>
                     </div>
-                    <div class="trade-card-body">
-                        <div>策略：<strong>${t.strategy}</strong></div>
-                        <div style="text-align:right;"><button class="btn-del" onclick="deleteRecord(${t.id || 0})">刪除</button></div>
-                        
-                        <div class="macro-data-box">
-                            外資期空：<span style="color:var(--text-main); margin-right:8px;">${t.fOk || '—'} 口</span> 
-                            外資買賣超：<span style="color:var(--text-main); margin-right:8px;">${t.fStock || '—'} 億</span> 
-                            投信買賣超：<span style="color:var(--text-main);">${t.sStock || '—'} 億</span><br>
-                            大盤：<span style="color:var(--text-main); margin-right:8px;">${t.tPoint || '—'} 點 (${t.tPercent || '—'})</span> 
-                            OTC：<span style="color:var(--text-main);">${t.oPoint || '—'} 點 (${t.oPercent || '—'})</span>
+                    
+                    <div class="macro-data-box">
+                        <div style="font-weight:bold; color:var(--text-main); font-size:0.85rem; margin-bottom:6px;">📊 每日宏觀與期權籌碼追蹤</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 0.8rem; color: var(--text-muted);">
+                            <div>外資期空：<span style="color:var(--text-main);">${day.fOk} 口</span></div>
+                            <div>外資現貨：<span style="color:var(--text-main);">${day.fStock} 億</span></div>
+                            <div>投信現貨：<span style="color:var(--text-main);">${day.sStock} 億</span></div>
                         </div>
-
-                        <div style="grid-column: 1 / -1; margin-top:4px; color:var(--text-main);">
-                            <span style="color:var(--text-muted); font-size:0.8rem; display:block;">復盤筆記：</span>${formatMultilineText(t.notes)}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 6px;">
+                            <div>大盤指數：<span style="color:var(--text-main);">${day.tPoint} 點 (${day.tPercent})</span></div>
+                            <div>OTC 指數：<span style="color:var(--text-main);">${day.oPoint} 點 (${day.oPercent})</span></div>
                         </div>
                         ${imgBlock}
                     </div>
-                </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
             `;
+
+            // 內部交易項目順序排列 (依時間先後向下堆疊)
+            day.trades.forEach(t => {
+                const itemPnLColor = t.pnl >= 0 ? 'var(--win)' : 'var(--loss)';
+                const itemSign = t.pnl > 0 ? '+' : '';
+
+                dayCardHtml += `
+                    <div class="trade-item-box" style="border-left: 3px solid ${itemPnLColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <span class="trade-card-name">${t.ticker}</span>
+                                <span style="background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;">${t.strategy}</span>
+                            </div>
+                            <div style="color:${itemPnLColor}; font-weight:bold; font-size:1.05rem;">${itemSign}${t.pnl.toLocaleString()}</div>
+                        </div>
+                        <div style="margin-top: 6px; color:var(--text-main); font-size:0.85rem;">
+                            <span style="color:var(--text-muted); font-size:0.8rem;">復盤筆記：</span>${formatMultilineText(t.notes)}
+                        </div>
+                        <div style="text-align: right; margin-top: 4px;">
+                            <button class="btn-del" style="padding: 1px 6px; font-size:0.75rem;" onclick="deleteRecord('${day.date}', ${t.id})">刪除此筆</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            dayCardHtml += `</div></div>`;
+            container.innerHTML += dayCardHtml;
         });
 
-        tradeJournal.forEach(t => {
-            totalPnL += t.pnl;
-            if (t.pnl > 0) winCount++;
-            equityCurve.push(totalPnL);
-            chartLabels.push(t.date.substring(5));
+        // 依據日期升序計算資金曲線與總體統計
+        const sortedDatesAsc = Object.keys(tradeJournal).sort((a, b) => new Date(a) - new Date(b));
+        sortedDatesAsc.forEach(date => {
+            const day = tradeJournal[date];
+            if(!day || !day.trades) return;
+            day.trades.forEach(t => {
+                overallTotalPnL += t.pnl;
+                overallTradeCount++;
+                if (t.pnl > 0) overallWinCount++;
+                equityCurveData.push(overallTotalPnL);
+                chartLabels.push(date.substring(5) + " " + t.ticker.split(' ')[0]);
+            });
         });
 
-        document.getElementById('statCount').innerText = tradeJournal.length;
-        document.getElementById('statWinRate').innerText = `${tradeJournal.length > 0 ? ((winCount / tradeJournal.length) * 100).toFixed(1) : 0}%`;
+        document.getElementById('statCount').innerText = overallTradeCount;
+        document.getElementById('statWinRate').innerText = `${overallTradeCount > 0 ? ((overallWinCount / overallTradeCount) * 100).toFixed(1) : 0}%`;
         
         const totalPnlEl = document.getElementById('statTotalPnL');
         if (totalPnlEl) {
-            totalPnlEl.innerText = `${totalPnL >= 0 ? '+' : ''}${totalPnL.toLocaleString()}`;
-            totalPnlEl.style.color = totalPnL >= 0 ? 'var(--win)' : 'var(--loss)';
+            totalPnlEl.innerText = `${overallTotalPnL >= 0 ? '+' : ''}${overallTotalPnL.toLocaleString()}`;
+            totalPnlEl.style.color = overallTotalPnL >= 0 ? 'var(--win)' : 'var(--loss)';
         }
 
-        drawEquityCurve(chartLabels, equityCurve);
+        drawEquityCurve(chartLabels, equityCurveData);
     }
 
     function drawEquityCurve(labels, data) {
         const ctx = document.getElementById('equityCurveChart').getContext('2d');
         if (equityChart) equityChart.destroy();
-
         const isProfitable = data[data.length - 1] >= 0;
 
         equityChart = new Chart(ctx, {
@@ -416,9 +481,9 @@
                 datasets: [{
                     data: data,
                     borderColor: isProfitable ? '#3fb950' : '#f85149',
-                    backgroundColor: isProfitable ? 'rgba(63, 185, 80, 0.05)' : 'rgba(248, 81, 73, 0.05)',
+                    backgroundColor: isProfitable ? 'rgba(63, 185, 80, 0.03)' : 'rgba(248, 81, 73, 0.03)',
                     borderWidth: 2,
-                    pointRadius: 3,
+                    pointRadius: 2,
                     fill: true,
                     stepped: true
                 }]
@@ -428,28 +493,31 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { ticks: { color: '#8b949e' }, grid: { display: false } },
-                    y: { ticks: { color: '#8b949e' }, grid: { color: '#30363d' } }
+                    x: { ticks: { color: '#8b949e', font: {size: 10} }, grid: { display: false } },
+                    y: { ticks: { color: '#8b949e', font: {size: 10} }, grid: { color: '#30363d' } }
                 }
             }
         });
     }
 
     function exportToExcel() {
-        if(tradeJournal.length === 0) { alert('無資料可匯出！'); return; }
+        if(Object.keys(tradeJournal).length === 0) { alert('無資料可匯出！'); return; }
         let csvContent = "\ufeff日期,主要標的,策略類型,已實現損益,外資期貨空單,外資現貨買賣超,投信買賣超,大盤點數,大盤增幅,OTC點數,OTC增幅,復盤筆記\n";
-        
         const csvSafe = (t) => { if (!t) return '""'; return `"${t.toString().replace(/"/g, '""').replace(/\n/g, ' | ')}"`; };
         
-        const exportData = [...tradeJournal].reverse();
-        exportData.forEach(t => {
-            csvContent += `${csvSafe(t.date)},${csvSafe(t.ticker)},${csvSafe(t.strategy)},${t.pnl},${csvSafe(t.fOk)},${csvSafe(t.fStock)},${csvSafe(t.sStock)},${csvSafe(t.tPoint)},${csvSafe(t.tPercent)},${csvSafe(t.oPoint)},${csvSafe(t.oPercent)},${csvSafe(t.notes)}\n`;
+        // 依據日期降序展開扁平化匯出
+        const sortedDatesDesc = Object.keys(tradeJournal).sort((a, b) => new Date(b) - new Date(a));
+        sortedDatesDesc.forEach(date => {
+            const day = tradeJournal[date];
+            day.trades.forEach(t => {
+                csvContent += `${csvSafe(day.date)},${csvSafe(t.ticker)},${csvSafe(t.strategy)},${t.pnl},${csvSafe(day.fOk)},${csvSafe(day.fStock)},${csvSafe(day.sStock)},${csvSafe(day.tPoint)},${csvSafe(day.tPercent)},${csvSafe(day.oPoint)},${csvSafe(day.oPercent)},${csvSafe(t.notes)}\n`;
+            });
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `交易復盤日誌_${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `綜合交易復盤日誌_${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
     }
 </script>
