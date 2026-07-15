@@ -57,7 +57,7 @@
         .image-preview-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
         .img-wrap { background: #0d1117; border: 1px solid var(--border); border-radius: 4px; padding: 4px; text-align: center; }
         .img-wrap span { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
-        .img-wrap img { max-width: 100%; max-height: 120px; object-fit: contain; border-radius: 2px; }
+        .img-wrap img { max-width: 100%; max-height: 120px; object-fit: contain; border-radius: 2px; cursor: pointer; }
 
         /* 交易明細列表卡片化 */
         .trade-card { background: #1f242c; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
@@ -106,10 +106,10 @@
                     <div class="form-group">
                         <label>策略類型</label>
                         <select id="tStrategy">
-                            <option value="當沖">現股當沖</option>
-                            <option value="波段留倉">波段留倉</option>
-                            <option value="期權交易">期權隔夜</option>
-                            <option value="混合策略">混合策略</option>
+                            <option value="漲停成本">漲停成本</option>
+                            <option value="鎖漲停">鎖漲停</option>
+                            <option value="一般當沖">一般當沖</option>
+                            <option value="波段單">波段單</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -216,14 +216,14 @@
 
     // 歷史資料初始化（直接打包你上傳的對帳單真實數據）
     const initialHistoryData = [
-        { date: "2026-07-01", ticker: "大盤群組", strategy: "混合策略", pnl: -1203, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { date: "2026-07-02", ticker: "大盤群組", strategy: "混合策略", pnl: -7424, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { date: "2026-07-03", ticker: "大盤群組", strategy: "混合策略", pnl: 62437, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { date: "2026-07-06", ticker: "大盤群組", strategy: "混合策略", pnl: -7708, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { date: "2026-07-07", ticker: "大盤群組", strategy: "混合策略", pnl: -53379, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { date: "2026-07-08", ticker: "大盤群組", strategy: "混合策略", pnl: -87735, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { date: "2026-07-09", ticker: "大盤群組", strategy: "混合策略", pnl: -50413, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
-        { date: "2026-07-13", ticker: "1303 南亞", strategy: "當沖", pnl: 48014, notes: "今天現股當沖南亞鎖漲停！做得非常漂亮！", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" }
+        { date: "2026-07-01", ticker: "大盤群組", strategy: "波段單", pnl: -1203, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
+        { date: "2026-07-02", ticker: "大盤群組", strategy: "波段單", pnl: -7424, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
+        { date: "2026-07-03", ticker: "大盤群組", strategy: "波段單", pnl: 62437, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
+        { date: "2026-07-06", ticker: "大盤群組", strategy: "波段單", pnl: -7708, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
+        { date: "2026-07-07", ticker: "大盤群組", strategy: "波段單", pnl: -53379, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
+        { date: "2026-07-08", ticker: "大盤群組", strategy: "波段單", pnl: -87735, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
+        { date: "2026-07-09", ticker: "大盤群組", strategy: "波段單", pnl: -50413, notes: "歷史對帳單初始化轉換", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" },
+        { date: "2026-07-13", ticker: "1303 南亞", strategy: "鎖漲停", pnl: 48014, notes: "今天現股當沖南亞鎖漲停！做得非常漂亮！", fOk: "", fStock: "", sStock: "", tPoint: "", tPercent: "", oPoint: "", oPercent: "", imgRev: "", imgPnl: "" }
     ];
 
     window.onload = function() {
